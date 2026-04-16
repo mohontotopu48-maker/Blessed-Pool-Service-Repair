@@ -1,13 +1,38 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
-import { motion, AnimatePresence, useScroll, useTransform, useInView } from "framer-motion";
+import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
+import {
+  motion,
+  AnimatePresence,
+  useScroll,
+  useTransform,
+  useInView,
+} from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Phone,
   Mail,
@@ -32,17 +57,41 @@ import {
   Heart,
   Award,
   Users,
+  CalendarCheck,
+  ClipboardCheck,
+  TrendingUp,
+  Target,
+  Building2,
+  FileCheck,
+  ShieldCheck,
+  GraduationCap,
+  Leaf,
+  MessageCircle,
+  Loader2,
+  CheckCircle,
+  Crown,
+  Radio,
+  CircleDot,
 } from "lucide-react";
 
-/* ------------------------------------------------------------------ */
-/*  ANIMATION HELPERS                                                  */
-/* ------------------------------------------------------------------ */
+/* ================================================================== */
+/*  TYPES                                                              */
+/* ================================================================== */
+type PageKey = "home" | "services" | "about" | "process" | "areas" | "contact";
+
+/* ================================================================== */
+/*  ANIMATION HELPERS                                                   */
+/* ================================================================== */
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.12, duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] },
+    transition: {
+      delay: i * 0.1,
+      duration: 0.7,
+      ease: [0.25, 0.46, 0.45, 0.94],
+    },
   }),
 };
 
@@ -59,18 +108,42 @@ const scaleIn = {
   visible: (i: number) => ({
     opacity: 1,
     scale: 1,
-    transition: { delay: i * 0.1, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] },
+    transition: {
+      delay: i * 0.1,
+      duration: 0.5,
+      ease: [0.25, 0.46, 0.45, 0.94],
+    },
   }),
 };
 
 const staggerContainer = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.1 } },
+  visible: { transition: { staggerChildren: 0.08 } },
 };
 
-function SectionReveal({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-80px" });
+const pageVariants = {
+  initial: { opacity: 0, y: 30 },
+  animate: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] },
+  },
+  exit: {
+    opacity: 0,
+    y: -20,
+    transition: { duration: 0.3 },
+  },
+};
+
+function SectionReveal({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-60px" });
   return (
     <motion.div
       ref={ref}
@@ -84,19 +157,63 @@ function SectionReveal({ children, className = "" }: { children: React.ReactNode
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  NAVIGATION                                                         */
-/* ------------------------------------------------------------------ */
-const navLinks = [
-  { label: "Home", href: "#home" },
-  { label: "Services", href: "#services" },
-  { label: "Why Us", href: "#why-us" },
-  { label: "Reviews", href: "#reviews" },
-  { label: "Areas", href: "#areas" },
-  { label: "Contact", href: "#contact" },
+/* ================================================================== */
+/*  COUNTER                                                             */
+/* ================================================================== */
+function Counter({
+  target,
+  suffix = "",
+  decimals = 0,
+}: {
+  target: number;
+  suffix?: string;
+  decimals?: number;
+}) {
+  const [count, setCount] = useState(0);
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true });
+
+  useEffect(() => {
+    if (!inView) return;
+    const duration = 2000;
+    const startTime = performance.now();
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCount(eased * target);
+      if (progress < 1) requestAnimationFrame(animate);
+    };
+    requestAnimationFrame(animate);
+  }, [inView, target]);
+
+  return (
+    <span ref={ref}>
+      {decimals > 0 ? count.toFixed(decimals) : Math.floor(count)}
+      {suffix}
+    </span>
+  );
+}
+
+/* ================================================================== */
+/*  NAVIGATION                                                          */
+/* ================================================================== */
+const navLinks: { label: string; href: PageKey }[] = [
+  { label: "Home", href: "home" },
+  { label: "Services", href: "services" },
+  { label: "About", href: "about" },
+  { label: "Process", href: "process" },
+  { label: "Areas", href: "areas" },
+  { label: "Contact", href: "contact" },
 ];
 
-function Navigation() {
+function Navigation({
+  currentPage,
+  onNavigate,
+}: {
+  currentPage: PageKey;
+  onNavigate: (page: PageKey) => void;
+}) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -106,6 +223,12 @@ function Navigation() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const handleNav = (page: PageKey) => {
+    setMobileOpen(false);
+    window.scrollTo({ top: 0 });
+    onNavigate(page);
+  };
+
   return (
     <>
       <motion.header
@@ -113,12 +236,17 @@ function Navigation() {
         animate={{ y: 0 }}
         transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-          scrolled ? "glass shadow-lg shadow-black/5 py-3" : "bg-transparent py-5"
+          scrolled
+            ? "glass shadow-lg shadow-black/5 py-3"
+            : "bg-transparent py-5"
         }`}
       >
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
           {/* Logo */}
-          <a href="#home" className="flex items-center gap-2.5 group">
+          <button
+            onClick={() => handleNav("home")}
+            className="flex items-center gap-2.5 group cursor-pointer"
+          >
             <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-teal-700 flex items-center justify-center shadow-lg shadow-teal-500/20 group-hover:shadow-teal-500/40 transition-shadow duration-300">
               <Droplets className="w-5 h-5 text-white" />
               <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-sky-400 rounded-full opacity-80 group-hover:opacity-100 transition-opacity" />
@@ -128,21 +256,25 @@ function Navigation() {
                 Blessed Pool
               </span>
               <span className="text-[10px] font-medium tracking-[0.2em] uppercase text-muted-foreground">
-                Service & Repair
+                Service &amp; Repair
               </span>
             </div>
-          </a>
+          </button>
 
           {/* Desktop links */}
           <div className="hidden lg:flex items-center gap-1">
             {navLinks.map((l) => (
-              <a
+              <button
                 key={l.href}
-                href={l.href}
-                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200 rounded-lg hover:bg-teal-50"
+                onClick={() => handleNav(l.href)}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-200 cursor-pointer ${
+                  currentPage === l.href
+                    ? "text-teal-700 bg-teal-50"
+                    : "text-muted-foreground hover:text-foreground hover:bg-teal-50"
+                }`}
               >
                 {l.label}
-              </a>
+              </button>
             ))}
           </div>
 
@@ -156,10 +288,10 @@ function Navigation() {
               (714) 561-8301
             </a>
             <Button
-              asChild
-              className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white shadow-lg shadow-teal-600/20 hover:shadow-teal-600/30 transition-all duration-300 rounded-xl"
+              onClick={() => handleNav("contact")}
+              className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white shadow-lg shadow-teal-600/20 hover:shadow-teal-600/30 transition-all duration-300 rounded-xl cursor-pointer"
             >
-              <a href="#contact">Free Quote</a>
+              Free Quote
             </Button>
           </div>
 
@@ -169,7 +301,11 @@ function Navigation() {
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label="Toggle menu"
           >
-            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {mobileOpen ? (
+              <X className="w-5 h-5" />
+            ) : (
+              <Menu className="w-5 h-5" />
+            )}
           </button>
         </nav>
       </motion.header>
@@ -186,16 +322,19 @@ function Navigation() {
           >
             <div className="flex flex-col items-center gap-2 p-6">
               {navLinks.map((l) => (
-                <a
+                <button
                   key={l.href}
-                  href={l.href}
-                  onClick={() => setMobileOpen(false)}
-                  className="w-full text-center py-3 text-lg font-medium text-foreground hover:text-teal-700 hover:bg-teal-50 rounded-xl transition-all"
+                  onClick={() => handleNav(l.href)}
+                  className={`w-full text-center py-3 text-lg font-medium rounded-xl transition-all cursor-pointer ${
+                    currentPage === l.href
+                      ? "text-teal-700 bg-teal-50"
+                      : "text-foreground hover:text-teal-700 hover:bg-teal-50"
+                  }`}
                 >
                   {l.label}
-                </a>
+                </button>
               ))}
-              <Separator className="my-4" />
+              <div className="w-full border-t my-4" />
               <a
                 href="tel:7145618301"
                 className="flex items-center gap-2 text-lg font-semibold text-teal-700"
@@ -204,13 +343,11 @@ function Navigation() {
                 (714) 561-8301
               </a>
               <Button
-                asChild
                 size="lg"
-                className="w-full mt-2 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl"
+                onClick={() => handleNav("contact")}
+                className="w-full mt-2 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl cursor-pointer"
               >
-                <a href="#contact" onClick={() => setMobileOpen(false)}>
-                  Get Free Quote
-                </a>
+                Get Free Quote
               </Button>
             </div>
           </motion.div>
@@ -220,1082 +357,39 @@ function Navigation() {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  HERO SECTION                                                       */
-/* ------------------------------------------------------------------ */
-function HeroSection() {
-  const ref = useRef(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
-  const y = useTransform(scrollYProgress, [0, 1], [0, 200]);
-  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
-
+/* ================================================================== */
+/*  FOOTER                                                              */
+/* ================================================================== */
+function Footer({ onNavigate }: { onNavigate: (page: PageKey) => void }) {
   return (
-    <section id="home" ref={ref} className="relative min-h-screen flex items-center overflow-hidden">
-      {/* Background image with parallax */}
-      <motion.div style={{ y }} className="absolute inset-0 z-0">
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-110"
-          style={{ backgroundImage: "url('/hero-pool.png')" }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-teal-950/90 via-teal-900/70 to-sky-900/50" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
-      </motion.div>
-
-      {/* Animated wave at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 z-10">
-        <svg viewBox="0 0 1440 120" className="w-full h-auto" preserveAspectRatio="none">
-          <path
-            className="wave-animation"
-            d="M0,60 C360,120 720,0 1080,60 C1260,90 1380,45 1440,60 L1440,120 L0,120 Z"
-            fill="hsl(0 0% 100% / 0.05)"
-          />
-          <path
-            className="wave-animation"
-            style={{ animationDelay: "-2s" }}
-            d="M0,80 C240,40 480,100 720,60 C960,20 1200,80 1440,40 L1440,120 L0,120 Z"
-            fill="hsl(0 0% 100% / 0.03)"
-          />
-        </svg>
-      </div>
-
-      {/* Floating bubbles */}
-      {[...Array(6)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute rounded-full bg-white/10"
-          style={{
-            width: 4 + i * 3,
-            height: 4 + i * 3,
-            left: `${15 + i * 14}%`,
-            bottom: "-5%",
-          }}
-          animate={{
-            y: [0, -300 - i * 100],
-            opacity: [0, 0.6, 0],
-            scale: [0.5, 1, 0.8],
-          }}
-          transition={{
-            duration: 4 + i * 0.8,
-            repeat: Infinity,
-            delay: i * 0.7,
-            ease: "easeOut",
-          }}
-        />
-      ))}
-
-      {/* Content */}
-      <motion.div style={{ opacity }} className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32">
-        <div className="max-w-3xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
-            <Badge className="bg-white/15 text-white border-white/20 backdrop-blur-sm hover:bg-white/20 mb-6 px-4 py-1.5 text-sm font-medium">
-              <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-              Trusted by hundreds of homeowners
-            </Badge>
-          </motion.div>
-
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-[1.1] tracking-tight"
-          >
-            Crystal Clear{" "}
-            <span className="relative">
-              Pools
-              <motion.span
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: 1 }}
-                transition={{ duration: 0.8, delay: 0.8 }}
-                className="absolute -bottom-2 left-0 right-0 h-1.5 bg-gradient-to-r from-teal-400 to-sky-400 rounded-full origin-left"
-              />
-            </span>
-            ,{" "}
-            <br className="hidden sm:block" />
-            Every Single Time
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="mt-6 text-lg sm:text-xl text-white/80 max-w-xl leading-relaxed"
-          >
-            Professional pool cleaning, maintenance, and repair services in Glendale and the Greater Los
-            Angeles area. Your pool, our passion.
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.7 }}
-            className="mt-10 flex flex-col sm:flex-row gap-4"
-          >
-            <Button
-              asChild
-              size="lg"
-              className="bg-white text-teal-800 hover:bg-white/90 shadow-xl shadow-black/10 rounded-xl text-base font-semibold px-8 h-13 group"
-            >
-              <a href="#contact" className="flex items-center gap-2">
-                Get Free Estimate
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </a>
-            </Button>
-            <Button
-              asChild
-              size="lg"
-              variant="outline"
-              className="border-white/30 text-white hover:bg-white/10 backdrop-blur-sm rounded-xl text-base font-medium px-8 h-13"
-            >
-              <a href="#services" className="flex items-center gap-2">
-                Our Services
-                <ChevronDown className="w-4 h-4" />
-              </a>
-            </Button>
-          </motion.div>
-
-          {/* Trust indicators */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 1 }}
-            className="mt-14 flex flex-wrap gap-8"
-          >
-            {[
-              { icon: Shield, label: "Licensed & Insured" },
-              { icon: Clock, label: "Same-Day Service" },
-              { icon: Star, label: "5-Star Rated" },
-              { icon: Heart, label: "Family Owned" },
-            ].map((item, i) => (
-              <div key={i} className="flex items-center gap-2 text-white/70">
-                <item.icon className="w-4 h-4 text-teal-400" />
-                <span className="text-sm font-medium">{item.label}</span>
-              </div>
-            ))}
-          </motion.div>
-        </div>
-      </motion.div>
-
-      {/* Scroll indicator */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.5 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20"
-      >
-        <motion.div
-          animate={{ y: [0, 8, 0] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className="w-6 h-10 rounded-full border-2 border-white/30 flex items-start justify-center p-1.5"
-        >
-          <motion.div
-            animate={{ opacity: [0.3, 1, 0.3], y: [0, 10, 0] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="w-1.5 h-1.5 rounded-full bg-white/60"
-          />
-        </motion.div>
-      </motion.div>
-    </section>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  SERVICES                                                           */
-/* ------------------------------------------------------------------ */
-const services = [
-  {
-    icon: Droplets,
-    title: "Pool Cleaning",
-    description:
-      "Weekly, bi-weekly, or one-time deep cleaning. We vacuum, brush, skim, and balance your water chemistry to perfection.",
-    features: ["Debris Removal", "Water Testing", "Filter Cleaning"],
-  },
-  {
-    icon: Wrench,
-    title: "Equipment Repair",
-    description:
-      "Expert diagnosis and repair of pumps, filters, heaters, timers, and automation systems. All brands serviced.",
-    features: ["Pump Repair", "Heater Service", "Leak Detection"],
-  },
-  {
-    icon: Waves,
-    title: "Pool Maintenance",
-    description:
-      "Comprehensive maintenance plans to keep your pool running efficiently all year long. Prevent problems before they start.",
-    features: ["Chemical Balance", "Equipment Check", "Seasonal Care"],
-  },
-  {
-    icon: ThermometerSun,
-    title: "Heater Services",
-    description:
-      "Gas, electric, and solar heater installation, maintenance, and repair. Stay comfortable year-round.",
-    features: ["Installation", "Efficiency Check", "Thermostat Repair"],
-  },
-  {
-    icon: Sparkles,
-    title: "Tile & Surface",
-    description:
-      "Professional tile cleaning, acid washing, and surface restoration to keep your pool looking brand new.",
-    features: ["Tile Cleaning", "Acid Wash", "Surface Repair"],
-  },
-  {
-    icon: Zap,
-    title: "Emergency Service",
-    description:
-      "Pool problems don't wait. Our rapid response team is available for urgent repairs and green pool recovery.",
-    features: ["Same-Day Call", "Green Pool Fix", "Storm Recovery"],
-  },
-];
-
-function ServicesSection() {
-  return (
-    <section id="services" className="py-24 sm:py-32 relative overflow-hidden">
-      {/* Decorative blobs */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-teal-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-50" />
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-sky-50 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 opacity-50" />
-
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <SectionReveal>
-          {/* Header */}
-          <motion.div variants={fadeUp} custom={0} className="text-center max-w-2xl mx-auto mb-16">
-            <Badge className="bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100 mb-4">
-              <Droplets className="w-3.5 h-3.5 mr-1.5" />
-              Our Services
-            </Badge>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
-              Everything Your Pool{" "}
-              <span className="text-gradient-water">Needs</span>
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              From routine cleaning to complex repairs, we provide comprehensive pool services tailored to
-              your needs.
-            </p>
-          </motion.div>
-
-          {/* Service cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {services.map((service, i) => (
-              <motion.div key={i} variants={fadeUp} custom={i + 1}>
-                <Card className="group relative h-full border-0 shadow-sm hover:shadow-xl hover:shadow-teal-500/5 transition-all duration-500 bg-white overflow-hidden">
-                  <CardContent className="p-6 pt-7">
-                    {/* Icon */}
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-teal-50 to-sky-50 flex items-center justify-center mb-5 group-hover:from-teal-500 group-hover:to-teal-600 transition-all duration-500 shadow-sm">
-                      <service.icon className="w-6 h-6 text-teal-600 group-hover:text-white transition-colors duration-500" />
-                    </div>
-
-                    {/* Title */}
-                    <h3 className="text-xl font-bold mb-2 group-hover:text-teal-700 transition-colors duration-300">
-                      {service.title}
-                    </h3>
-
-                    {/* Description */}
-                    <p className="text-muted-foreground text-sm leading-relaxed mb-5">
-                      {service.description}
-                    </p>
-
-                    {/* Features */}
-                    <div className="flex flex-wrap gap-2">
-                      {service.features.map((f, j) => (
-                        <span
-                          key={j}
-                          className="inline-flex items-center text-xs font-medium text-teal-600 bg-teal-50 rounded-lg px-2.5 py-1"
-                        >
-                          <CheckCircle2 className="w-3 h-3 mr-1" />
-                          {f}
-                        </span>
-                      ))}
-                    </div>
-                  </CardContent>
-
-                  {/* Hover gradient line at top */}
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-teal-500 to-sky-500 scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </SectionReveal>
-      </div>
-    </section>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  WHY CHOOSE US                                                      */
-/* ------------------------------------------------------------------ */
-const stats = [
-  { value: 15, suffix: "+", label: "Years Experience" },
-  { value: 500, suffix: "+", label: "Happy Customers" },
-  { value: 1000, suffix: "+", label: "Pools Serviced" },
-  { value: 4.9, suffix: "", label: "Average Rating", decimals: 1 },
-];
-
-const reasons = [
-  {
-    icon: Shield,
-    title: "Licensed & Fully Insured",
-    desc: "Complete peace of mind with full liability coverage and professional licensing.",
-  },
-  {
-    icon: Clock,
-    title: "Reliable & On Time",
-    desc: "We respect your schedule. Consistent service days and prompt arrivals guaranteed.",
-  },
-  {
-    icon: Heart,
-    title: "Family-Owned & Operated",
-    desc: "Personal service you can trust. We treat every pool like it's our own.",
-  },
-  {
-    icon: Award,
-    title: "Upfront Pricing",
-    desc: "No hidden fees or surprise charges. Transparent quotes every time.",
-  },
-];
-
-function WhyUsSection() {
-  const countersRef = useRef(null);
-  const isInView = useInView(countersRef, { once: true, margin: "-100px" });
-
-  return (
-    <section id="why-us" className="py-24 sm:py-32 bg-gradient-to-b from-teal-50/50 to-white relative overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <SectionReveal>
-          <motion.div variants={fadeUp} custom={0} className="text-center max-w-2xl mx-auto mb-16">
-            <Badge className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 mb-4">
-              <Star className="w-3.5 h-3.5 mr-1.5" />
-              Why Choose Us
-            </Badge>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
-              The <span className="text-gradient-water">Blessed</span> Difference
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Reliability, efficiency, and personal integrity combine to create a five-star experience for
-              every customer.
-            </p>
-          </motion.div>
-        </SectionReveal>
-
-        {/* Stats */}
-        <div ref={countersRef} className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-20">
-          {stats.map((stat, i) => (
-            <SectionReveal key={i}>
-              <motion.div
-                variants={scaleIn}
-                custom={i}
-                className="relative bg-white rounded-2xl p-6 sm:p-8 text-center shadow-sm hover:shadow-lg hover:shadow-teal-500/5 transition-all duration-300"
-              >
-                <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-gradient-water">
-                  {isInView ? (
-                    <Counter target={stat.value} suffix={stat.suffix} decimals={stat.decimals || 0} />
-                  ) : (
-                    "0"
-                  )}
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground font-medium">{stat.label}</p>
-              </motion.div>
-            </SectionReveal>
-          ))}
-        </div>
-
-        {/* Reasons grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {reasons.map((r, i) => (
-            <SectionReveal key={i}>
-              <motion.div
-                variants={fadeUp}
-                custom={i}
-                className="flex gap-5 p-6 rounded-2xl bg-white shadow-sm hover:shadow-lg hover:shadow-teal-500/5 transition-all duration-300 group"
-              >
-                <div className="shrink-0 w-12 h-12 rounded-2xl bg-gradient-to-br from-teal-50 to-teal-100 flex items-center justify-center group-hover:from-teal-500 group-hover:to-teal-600 transition-all duration-500">
-                  <r.icon className="w-6 h-6 text-teal-600 group-hover:text-white transition-colors duration-500" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg mb-1">{r.title}</h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">{r.desc}</p>
-                </div>
-              </motion.div>
-            </SectionReveal>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function Counter({
-  target,
-  suffix = "",
-  decimals = 0,
-}: {
-  target: number;
-  suffix?: string;
-  decimals?: number;
-}) {
-  const [count, setCount] = useState(0);
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true });
-
-  useEffect(() => {
-    if (!inView) return;
-    let start = 0;
-    const duration = 2000;
-    const startTime = performance.now();
-
-    const animate = (now: number) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const current = eased * target;
-      setCount(current);
-      if (progress < 1) requestAnimationFrame(animate);
-    };
-    requestAnimationFrame(animate);
-  }, [inView, target]);
-
-  return (
-    <span ref={ref}>
-      {decimals > 0 ? count.toFixed(decimals) : Math.floor(count)}
-      {suffix}
-    </span>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  PROCESS                                                            */
-/* ------------------------------------------------------------------ */
-const steps = [
-  {
-    step: "01",
-    icon: Phone,
-    title: "Call or Book Online",
-    desc: "Reach out via phone, email, or our contact form. Tell us about your pool and what you need.",
-  },
-  {
-    step: "02",
-    icon: Users,
-    title: "Free Assessment",
-    desc: "We visit your property to evaluate your pool's condition and provide a transparent, no-obligation quote.",
-  },
-  {
-    step: "03",
-    icon: Zap,
-    title: "Expert Service",
-    desc: "Our trained technicians perform the work with precision, using professional-grade equipment and products.",
-  },
-  {
-    step: "04",
-    icon: Heart,
-    title: "Ongoing Care",
-    desc: "Enjoy a sparkling clean pool with our scheduled maintenance. We handle everything so you don't have to.",
-  },
-];
-
-function ProcessSection() {
-  return (
-    <section className="py-24 sm:py-32 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(20,184,166,0.06),transparent_60%)]" />
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <SectionReveal>
-          <motion.div variants={fadeUp} custom={0} className="text-center max-w-2xl mx-auto mb-16">
-            <Badge className="bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100 mb-4">
-              <Zap className="w-3.5 h-3.5 mr-1.5" />
-              How It Works
-            </Badge>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
-              Simple as <span className="text-gradient-water">1, 2, 3... 4</span>
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Getting started with Blessed Pool Service is easy and hassle-free.
-            </p>
-          </motion.div>
-        </SectionReveal>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {steps.map((s, i) => (
-            <SectionReveal key={i}>
-              <motion.div variants={fadeUp} custom={i + 1} className="relative text-center group">
-                {/* Connector line */}
-                {i < steps.length - 1 && (
-                  <div className="hidden lg:block absolute top-10 left-[calc(50%+40px)] right-[calc(-50%+40px)] h-px bg-gradient-to-r from-teal-300 to-transparent" />
-                )}
-
-                {/* Step number */}
-                <div className="relative inline-flex mb-6">
-                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-lg shadow-teal-500/20 group-hover:shadow-teal-500/30 transition-shadow duration-300 group-hover:scale-105 transition-transform">
-                    <s.icon className="w-8 h-8 text-white" />
-                  </div>
-                  <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center">
-                    <span className="text-xs font-bold text-teal-600">{s.step}</span>
-                  </div>
-                </div>
-
-                <h3 className="text-lg font-bold mb-2">{s.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">{s.desc}</p>
-              </motion.div>
-            </SectionReveal>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  TESTIMONIALS                                                       */
-/* ------------------------------------------------------------------ */
-const reviews = [
-  {
-    name: "Maria G.",
-    location: "Glendale, CA",
-    rating: 5,
-    text: "Reliability, efficiency, and high personal integrity combine to make Paul and his staff a Five Star experience. I've been using them for over 3 years and couldn't be happier!",
-    date: "2 months ago",
-  },
-  {
-    name: "David K.",
-    location: "Burbank, CA",
-    rating: 5,
-    text: "Best pool service we've ever had. They show up on time, every time, and our pool has never looked better. The communication is excellent and pricing is fair.",
-    date: "3 months ago",
-  },
-  {
-    name: "Jennifer L.",
-    location: "Pasadena, CA",
-    rating: 5,
-    text: "After switching from another company, the difference was night and day. Blessed Pool Service truly cares about their customers. Highly recommend!",
-    date: "1 month ago",
-  },
-  {
-    name: "Robert M.",
-    location: "Garden Grove, CA",
-    rating: 5,
-    text: "Paul fixed our heater issue the same day we called. He explained everything clearly and the price was very reasonable. A truly blessed experience!",
-    date: "5 months ago",
-  },
-  {
-    name: "Sarah T.",
-    location: "Silver Lake, CA",
-    rating: 5,
-    text: "We had a green pool emergency and they came out within hours. By the next day our pool was crystal clear. Lifesavers! Will definitely use their weekly service.",
-    date: "2 weeks ago",
-  },
-];
-
-function ReviewsSection() {
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  const next = useCallback(() => setActiveIndex((p) => (p + 1) % reviews.length), []);
-  const prev = useCallback(
-    () => setActiveIndex((p) => (p - 1 + reviews.length) % reviews.length),
-    []
-  );
-
-  return (
-    <section id="reviews" className="py-24 sm:py-32 bg-gradient-to-b from-white to-teal-50/30 relative overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <SectionReveal>
-          <motion.div variants={fadeUp} custom={0} className="text-center max-w-2xl mx-auto mb-16">
-            <Badge className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 mb-4">
-              <Star className="w-3.5 h-3.5 mr-1.5" />
-              Testimonials
-            </Badge>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
-              What Our <span className="text-gradient-water">Customers</span> Say
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Real reviews from real customers. Our reputation speaks for itself.
-            </p>
-          </motion.div>
-        </SectionReveal>
-
-        {/* Featured review */}
-        <SectionReveal>
-          <div className="relative max-w-3xl mx-auto mb-12">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeIndex}
-                initial={{ opacity: 0, y: 20, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -20, scale: 0.98 }}
-                transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-                className="bg-white rounded-3xl p-8 sm:p-10 shadow-lg shadow-black/5 relative"
-              >
-                {/* Quote icon */}
-                <div className="absolute -top-4 left-8 sm:left-10 w-10 h-10 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-lg shadow-teal-500/20">
-                  <Quote className="w-5 h-5 text-white" />
-                </div>
-
-                {/* Stars */}
-                <div className="flex gap-1 mb-6 pt-2">
-                  {[...Array(reviews[activeIndex].rating)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className="w-5 h-5 fill-amber-400 text-amber-400"
-                    />
-                  ))}
-                </div>
-
-                {/* Text */}
-                <p className="text-lg sm:text-xl leading-relaxed text-foreground mb-6 font-medium">
-                  &ldquo;{reviews[activeIndex].text}&rdquo;
-                </p>
-
-                {/* Author */}
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-teal-500 to-sky-500 flex items-center justify-center text-white font-bold text-sm">
-                    {reviews[activeIndex].name.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="font-semibold">{reviews[activeIndex].name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {reviews[activeIndex].location} · {reviews[activeIndex].date}
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
-            </AnimatePresence>
-
-            {/* Navigation arrows */}
-            <button
-              onClick={prev}
-              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 sm:-translate-x-6 w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-teal-50 transition-colors z-10"
-              aria-label="Previous review"
-            >
-              <ChevronDown className="w-5 h-5 -rotate-90" />
-            </button>
-            <button
-              onClick={next}
-              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 sm:translate-x-6 w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-teal-50 transition-colors z-10"
-              aria-label="Next review"
-            >
-              <ChevronDown className="w-5 h-5 rotate-90" />
-            </button>
-          </div>
-        </SectionReveal>
-
-        {/* Dots */}
-        <div className="flex justify-center gap-2 mb-14">
-          {reviews.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setActiveIndex(i)}
-              className={`h-2 rounded-full transition-all duration-300 ${
-                i === activeIndex ? "w-8 bg-teal-500" : "w-2 bg-teal-200 hover:bg-teal-300"
-              }`}
-              aria-label={`Go to review ${i + 1}`}
-            />
-          ))}
-        </div>
-
-        {/* Review cards grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {reviews
-            .filter((_, i) => i !== activeIndex)
-            .slice(0, 3)
-            .map((review, i) => (
-              <SectionReveal key={i}>
-                <motion.div
-                  variants={fadeIn}
-                  custom={i}
-                  onClick={() => setActiveIndex(reviews.indexOf(review))}
-                  className="bg-white/80 backdrop-blur-sm rounded-2xl p-5 shadow-sm hover:shadow-md cursor-pointer transition-all duration-300 border border-transparent hover:border-teal-200"
-                >
-                  <div className="flex gap-0.5 mb-3">
-                    {[...Array(review.rating)].map((_, j) => (
-                      <Star key={j} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                    ))}
-                  </div>
-                  <p className="text-sm text-foreground/80 line-clamp-3 mb-3">
-                    &ldquo;{review.text}&rdquo;
-                  </p>
-                  <p className="text-xs font-semibold">{review.name}</p>
-                  <p className="text-xs text-muted-foreground">{review.location}</p>
-                </motion.div>
-              </SectionReveal>
-            ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  SERVICE AREAS                                                      */
-/* ------------------------------------------------------------------ */
-const areas = [
-  "Glendale",
-  "Burbank",
-  "Pasadena",
-  "Garden Grove",
-  "Silver Lake",
-  "Los Feliz",
-  "Eagle Rock",
-  "Highland Park",
-  "South Pasadena",
-  "San Marino",
-  "Alhambra",
-  "Montebello",
-  "La Crescenta",
-  "La Canada",
-  "Monrovia",
-  "Arcadia",
-];
-
-function AreasSection() {
-  return (
-    <section id="areas" className="py-24 sm:py-32 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-teal-950 to-teal-900" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(20,184,166,0.15),transparent_60%)]" />
-
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <SectionReveal>
-          <motion.div variants={fadeUp} custom={0} className="text-center max-w-2xl mx-auto mb-16">
-            <Badge className="bg-white/10 text-teal-300 border-white/20 hover:bg-white/20 mb-4 backdrop-blur-sm">
-              <MapPin className="w-3.5 h-3.5 mr-1.5" />
-              Service Areas
-            </Badge>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white">
-              Serving Greater{" "}
-              <span className="bg-gradient-to-r from-teal-300 to-sky-300 bg-clip-text text-transparent">
-                Los Angeles
-              </span>
-            </h2>
-            <p className="mt-4 text-lg text-teal-200/70">
-              Proudly serving communities throughout Los Angeles County and Orange County.
-            </p>
-          </motion.div>
-        </SectionReveal>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-          {areas.map((area, i) => (
-            <SectionReveal key={i}>
-              <motion.div
-                variants={fadeUp}
-                custom={i + 1}
-                className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4 text-center hover:bg-white/10 hover:border-teal-400/30 transition-all duration-300 cursor-default group"
-              >
-                <MapPin className="w-4 h-4 text-teal-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
-                <span className="text-sm font-medium text-white/90">{area}</span>
-              </motion.div>
-            </SectionReveal>
-          ))}
-        </div>
-
-        <SectionReveal>
-          <motion.div variants={fadeUp} custom={18} className="text-center mt-12">
-            <p className="text-teal-300/60 text-sm mb-4">
-              Don&apos;t see your area? Contact us — we may still serve you!
-            </p>
-            <Button
-              asChild
-              className="bg-white/10 text-white border border-white/20 hover:bg-white/20 backdrop-blur-sm rounded-xl"
-            >
-              <a href="#contact">Ask About Your Area</a>
-            </Button>
-          </motion.div>
-        </SectionReveal>
-      </div>
-    </section>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  CONTACT / CTA                                                      */
-/* ------------------------------------------------------------------ */
-function ContactSection() {
-  const [formData, setFormData] = useState({ name: "", email: "", phone: "", message: "" });
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    // Simulate submission
-    await new Promise((r) => setTimeout(r, 1500));
-    setLoading(false);
-    setSubmitted(true);
-  };
-
-  return (
-    <section id="contact" className="py-24 sm:py-32 relative overflow-hidden">
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-teal-50 rounded-full blur-3xl -translate-y-1/2 opacity-50" />
-
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <SectionReveal>
-          <motion.div variants={fadeUp} custom={0} className="text-center max-w-2xl mx-auto mb-16">
-            <Badge className="bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100 mb-4">
-              <Send className="w-3.5 h-3.5 mr-1.5" />
-              Get In Touch
-            </Badge>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
-              Ready for a{" "}
-              <span className="text-gradient-water">Crystal Clear</span> Pool?
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Get your free, no-obligation estimate today. We respond within 24 hours.
-            </p>
-          </motion.div>
-        </SectionReveal>
-
-        <div className="grid lg:grid-cols-5 gap-10 max-w-6xl mx-auto">
-          {/* Contact info */}
-          <SectionReveal className="lg:col-span-2">
-            <motion.div variants={fadeUp} custom={1} className="space-y-6">
-              <Card className="border-0 shadow-sm bg-gradient-to-br from-teal-600 to-teal-700 text-white overflow-hidden">
-                <CardContent className="p-8">
-                  <h3 className="text-2xl font-bold mb-2">Let&apos;s Talk</h3>
-                  <p className="text-teal-100 text-sm mb-8">
-                    Reach out and we&apos;ll get back to you fast.
-                  </p>
-
-                  <div className="space-y-5">
-                    <a
-                      href="tel:7145618301"
-                      className="flex items-center gap-4 group"
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center group-hover:bg-white/25 transition-colors">
-                        <Phone className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-teal-200">Call Us</p>
-                        <p className="font-semibold text-lg">(714) 561-8301</p>
-                      </div>
-                    </a>
-
-                    <a
-                      href="mailto:blessedpoolservice@gmail.com"
-                      className="flex items-center gap-4 group"
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center group-hover:bg-white/25 transition-colors">
-                        <Mail className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-teal-200">Email Us</p>
-                        <p className="font-semibold text-sm break-all">
-                          blessedpoolservice@gmail.com
-                        </p>
-                      </div>
-                    </a>
-
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
-                        <MapPin className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-teal-200">Service Area</p>
-                        <p className="font-semibold">Glendale, CA & Surrounding</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
-                        <Clock className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-teal-200">Hours</p>
-                        <p className="font-semibold">Mon - Sat: 7AM - 6PM</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator className="my-8 bg-white/20" />
-
-                  {/* Social links */}
-                  <div className="flex items-center gap-3">
-                    <a
-                      href="https://www.facebook.com/ablessedpoolservice/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center hover:bg-white/25 transition-colors"
-                      aria-label="Facebook"
-                    >
-                      <Facebook className="w-5 h-5" />
-                    </a>
-                    <a
-                      href="https://www.yelp.com/biz/blessed-pool-service-garden-grove"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center hover:bg-white/25 transition-colors"
-                      aria-label="Yelp"
-                    >
-                      <Star className="w-5 h-5" />
-                    </a>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </SectionReveal>
-
-          {/* Contact form */}
-          <SectionReveal className="lg:col-span-3">
-            <motion.div variants={fadeUp} custom={2}>
-              <Card className="border-0 shadow-sm bg-white">
-                <CardContent className="p-8">
-                  <AnimatePresence mode="wait">
-                    {submitted ? (
-                      <motion.div
-                        key="success"
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="text-center py-12"
-                      >
-                        <div className="w-16 h-16 rounded-full bg-teal-50 flex items-center justify-center mx-auto mb-6">
-                          <CheckCircle2 className="w-8 h-8 text-teal-600" />
-                        </div>
-                        <h3 className="text-2xl font-bold mb-2">Message Sent!</h3>
-                        <p className="text-muted-foreground">
-                          Thank you for reaching out. We&apos;ll get back to you within 24 hours.
-                        </p>
-                        <Button
-                          onClick={() => {
-                            setSubmitted(false);
-                            setFormData({ name: "", email: "", phone: "", message: "" });
-                          }}
-                          variant="outline"
-                          className="mt-6 rounded-xl"
-                        >
-                          Send Another Message
-                        </Button>
-                      </motion.div>
-                    ) : (
-                      <motion.form
-                        key="form"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onSubmit={handleSubmit}
-                        className="space-y-5"
-                      >
-                        <div className="grid sm:grid-cols-2 gap-5">
-                          <div>
-                            <label className="text-sm font-medium mb-1.5 block">
-                              Full Name <span className="text-destructive">*</span>
-                            </label>
-                            <Input
-                              required
-                              placeholder="John Smith"
-                              value={formData.name}
-                              onChange={(e) =>
-                                setFormData({ ...formData, name: e.target.value })
-                              }
-                              className="rounded-xl h-11"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium mb-1.5 block">
-                              Email <span className="text-destructive">*</span>
-                            </label>
-                            <Input
-                              required
-                              type="email"
-                              placeholder="john@example.com"
-                              value={formData.email}
-                              onChange={(e) =>
-                                setFormData({ ...formData, email: e.target.value })
-                              }
-                              className="rounded-xl h-11"
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="text-sm font-medium mb-1.5 block">
-                            Phone Number
-                          </label>
-                          <Input
-                            type="tel"
-                            placeholder="(714) 000-0000"
-                            value={formData.phone}
-                            onChange={(e) =>
-                              setFormData({ ...formData, phone: e.target.value })
-                            }
-                            className="rounded-xl h-11"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="text-sm font-medium mb-1.5 block">
-                            How can we help? <span className="text-destructive">*</span>
-                          </label>
-                          <Textarea
-                            required
-                            placeholder="Tell us about your pool and what services you're interested in..."
-                            value={formData.message}
-                            onChange={(e) =>
-                              setFormData({ ...formData, message: e.target.value })
-                            }
-                            className="rounded-xl min-h-[140px] resize-none"
-                          />
-                        </div>
-
-                        <Button
-                          type="submit"
-                          disabled={loading}
-                          className="w-full bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white shadow-lg shadow-teal-600/20 hover:shadow-teal-600/30 rounded-xl h-12 text-base font-semibold group"
-                        >
-                          {loading ? (
-                            <motion.div
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                              className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
-                            />
-                          ) : (
-                            <>
-                              Send Message
-                              <Send className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                            </>
-                          )}
-                        </Button>
-
-                        <p className="text-xs text-center text-muted-foreground">
-                          We&apos;ll never share your information. Response time is typically under 24
-                          hours.
-                        </p>
-                      </motion.form>
-                    )}
-                  </AnimatePresence>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </SectionReveal>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  FOOTER                                                             */
-/* ------------------------------------------------------------------ */
-function Footer() {
-  return (
-    <footer className="bg-teal-950 text-white pt-16 pb-8 relative">
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-teal-500/30 to-transparent" />
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+    <footer className="bg-teal-950 text-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Brand */}
-          <div className="lg:col-span-1">
+          <div>
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center">
                 <Droplets className="w-5 h-5 text-white" />
               </div>
-              <span className="text-lg font-bold">Blessed Pool Service</span>
+              <div className="flex flex-col">
+                <span className="text-lg font-bold leading-none">
+                  Blessed Pool
+                </span>
+                <span className="text-[10px] font-medium tracking-[0.2em] uppercase text-teal-300/70">
+                  Service &amp; Repair
+                </span>
+              </div>
             </div>
-            <p className="text-teal-300/60 text-sm leading-relaxed mb-6">
-              Professional pool cleaning, maintenance, and repair services. Keeping pools crystal clear
-              since 2009.
+            <p className="text-sm text-teal-200/60 leading-relaxed mb-4">
+              Professional pool cleaning, maintenance, and repair services
+              serving Greater Los Angeles since 2009.
             </p>
             <div className="flex gap-3">
               <a
                 href="https://www.facebook.com/ablessedpoolservice/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+                className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center hover:bg-teal-500 transition-colors"
                 aria-label="Facebook"
               >
                 <Facebook className="w-4 h-4" />
@@ -1304,7 +398,7 @@ function Footer() {
                 href="https://www.yelp.com/biz/blessed-pool-service-garden-grove"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+                className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center hover:bg-red-500 transition-colors"
                 aria-label="Yelp"
               >
                 <Star className="w-4 h-4" />
@@ -1314,18 +408,21 @@ function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h4 className="font-semibold text-sm mb-4 tracking-wide uppercase text-teal-300/80">
+            <h4 className="font-bold text-sm uppercase tracking-wider text-teal-300 mb-4">
               Quick Links
             </h4>
-            <ul className="space-y-3">
+            <ul className="space-y-2.5">
               {navLinks.map((l) => (
                 <li key={l.href}>
-                  <a
-                    href={l.href}
-                    className="text-sm text-teal-200/50 hover:text-white transition-colors"
+                  <button
+                    onClick={() => {
+                      window.scrollTo({ top: 0 });
+                      onNavigate(l.href);
+                    }}
+                    className="text-sm text-teal-200/60 hover:text-white transition-colors cursor-pointer"
                   >
                     {l.label}
-                  </a>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -1333,58 +430,67 @@ function Footer() {
 
           {/* Services */}
           <div>
-            <h4 className="font-semibold text-sm mb-4 tracking-wide uppercase text-teal-300/80">
+            <h4 className="font-bold text-sm uppercase tracking-wider text-teal-300 mb-4">
               Services
             </h4>
-            <ul className="space-y-3">
-              {services.slice(0, 6).map((s, i) => (
-                <li key={i}>
-                  <a
-                    href="#services"
-                    className="text-sm text-teal-200/50 hover:text-white transition-colors"
-                  >
-                    {s.title}
-                  </a>
-                </li>
-              ))}
+            <ul className="space-y-2.5 text-sm text-teal-200/60">
+              <li>Weekly Pool Cleaning</li>
+              <li>Equipment Repair</li>
+              <li>Full Pool Maintenance</li>
+              <li>Pool Heater Services</li>
+              <li>Tile &amp; Surface Care</li>
+              <li>Emergency &amp; Green Pool</li>
             </ul>
           </div>
 
           {/* Contact */}
           <div>
-            <h4 className="font-semibold text-sm mb-4 tracking-wide uppercase text-teal-300/80">
-              Contact
+            <h4 className="font-bold text-sm uppercase tracking-wider text-teal-300 mb-4">
+              Contact Us
             </h4>
-            <ul className="space-y-3 text-sm text-teal-200/50">
-              <li className="flex items-center gap-2">
-                <Phone className="w-4 h-4 shrink-0 text-teal-400" />
-                <a href="tel:7145618301" className="hover:text-white transition-colors">
+            <ul className="space-y-3">
+              <li>
+                <a
+                  href="tel:7145618301"
+                  className="flex items-center gap-2 text-sm text-teal-200/60 hover:text-white transition-colors"
+                >
+                  <Phone className="w-4 h-4 text-teal-400" />
                   (714) 561-8301
                 </a>
               </li>
-              <li className="flex items-center gap-2">
-                <Mail className="w-4 h-4 shrink-0 text-teal-400" />
+              <li>
                 <a
                   href="mailto:blessedpoolservice@gmail.com"
-                  className="hover:text-white transition-colors break-all"
+                  className="flex items-center gap-2 text-sm text-teal-200/60 hover:text-white transition-colors"
                 >
+                  <Mail className="w-4 h-4 text-teal-400" />
                   blessedpoolservice@gmail.com
                 </a>
               </li>
-              <li className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 shrink-0 text-teal-400 mt-0.5" />
-                <span>Glendale, CA 91221, United States</span>
+              <li className="flex items-start gap-2 text-sm text-teal-200/60">
+                <MapPin className="w-4 h-4 text-teal-400 mt-0.5 shrink-0" />
+                Glendale, CA 91221
+              </li>
+              <li className="flex items-start gap-2 text-sm text-teal-200/60">
+                <Clock className="w-4 h-4 text-teal-400 mt-0.5 shrink-0" />
+                <span>
+                  Mon-Sat 7:00 AM - 6:00 PM
+                  <br />
+                  Sun Closed
+                </span>
               </li>
             </ul>
           </div>
         </div>
+      </div>
 
-        <Separator className="bg-white/10 mb-8" />
-
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-teal-300/40">
-          <p>&copy; {new Date().getFullYear()} Blessed Pool Service. All rights reserved.</p>
-          <p>
-            Licensed & Insured · Serving Greater Los Angeles
+      <div className="border-t border-white/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-teal-200/40">
+            © 2025 Blessed Pool Service. All rights reserved.
+          </p>
+          <p className="text-xs text-teal-200/40">
+            Licensed &amp; Insured · Serving Greater Los Angeles
           </p>
         </div>
       </div>
@@ -1392,21 +498,2076 @@ function Footer() {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  MAIN PAGE                                                          */
-/* ------------------------------------------------------------------ */
-export default function HomePage() {
+/* ================================================================== */
+/*  1. HOME PAGE                                                        */
+/* ================================================================== */
+const homeServices = [
+  {
+    icon: Droplets,
+    title: "Pool Cleaning",
+    desc: "Professional weekly cleaning with water chemistry balancing and equipment checks.",
+  },
+  {
+    icon: Wrench,
+    title: "Equipment Repair",
+    desc: "Expert diagnosis and repair for pumps, filters, heaters, and automation systems.",
+  },
+  {
+    icon: Waves,
+    title: "Pool Maintenance",
+    desc: "Comprehensive maintenance plans to keep your pool running efficiently year-round.",
+  },
+  {
+    icon: ThermometerSun,
+    title: "Heater Services",
+    desc: "Installation, repair, and optimization for all types of pool heating systems.",
+  },
+  {
+    icon: Sparkles,
+    title: "Tile & Surface",
+    desc: "Tile cleaning, calcium removal, acid washing, and surface restoration services.",
+  },
+  {
+    icon: Zap,
+    title: "Emergency Service",
+    desc: "Rapid response for urgent repairs, green pool recovery, and storm damage.",
+  },
+];
+
+const homeStats = [
+  { value: 15, suffix: "+", label: "Years Experience" },
+  { value: 500, suffix: "+", label: "Happy Customers" },
+  { value: 1000, suffix: "+", label: "Pools Serviced" },
+  { value: 4.9, suffix: "", label: "Average Rating", decimals: 1 },
+];
+
+const homeTestimonials = [
+  {
+    name: "Maria G.",
+    location: "Glendale, CA",
+    rating: 5,
+    text: "Reliability, efficiency, and high personal integrity combine to make this a Five Star experience. I've been using them for over 3 years!",
+  },
+  {
+    name: "David K.",
+    location: "Burbank, CA",
+    rating: 5,
+    text: "Best pool service we've ever had. They show up on time, every time, and our pool has never looked better.",
+  },
+  {
+    name: "Jennifer L.",
+    location: "Pasadena, CA",
+    rating: 5,
+    text: "After switching from another company, the difference was night and day. Blessed Pool Service truly cares!",
+  },
+];
+
+function HomePage({ onNavigate }: { onNavigate: (page: PageKey) => void }) {
+  const heroRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: heroRef,
+    offset: ["start start", "end start"],
+  });
+  const heroY = useTransform(scrollYProgress, [0, 1], [0, 200]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  const statsRef = useRef<HTMLDivElement>(null);
+  const statsInView = useInView(statsRef, { once: true, margin: "-100px" });
+
+  const handleNav = (page: PageKey) => {
+    window.scrollTo({ top: 0 });
+    onNavigate(page);
+  };
+
   return (
-    <div className="min-h-screen">
-      <Navigation />
-      <HeroSection />
-      <ServicesSection />
-      <ProcessSection />
-      <WhyUsSection />
-      <ReviewsSection />
-      <AreasSection />
-      <ContactSection />
-      <Footer />
+    <div>
+      {/* Hero */}
+      <section
+        ref={heroRef}
+        className="relative min-h-screen flex items-center overflow-hidden"
+      >
+        <motion.div style={{ y: heroY }} className="absolute inset-0 z-0">
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-110"
+            style={{ backgroundImage: "url('/hero-pool.png')" }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-teal-950/90 via-teal-900/70 to-sky-900/50" />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+        </motion.div>
+
+        {/* Wave at bottom */}
+        <div className="absolute bottom-0 left-0 right-0 z-10">
+          <svg
+            viewBox="0 0 1440 120"
+            className="w-full h-auto"
+            preserveAspectRatio="none"
+          >
+            <path
+              className="wave-animation"
+              d="M0,60 C360,120 720,0 1080,60 C1260,90 1380,45 1440,60 L1440,120 L0,120 Z"
+              fill="hsl(0 0% 100% / 0.05)"
+            />
+            <path
+              className="wave-animation"
+              style={{ animationDelay: "-2s" }}
+              d="M0,80 C240,40 480,100 720,60 C960,20 1200,80 1440,40 L1440,120 L0,120 Z"
+              fill="hsl(0 0% 100% / 0.03)"
+            />
+          </svg>
+        </div>
+
+        {/* Floating bubbles */}
+        {[...Array(8)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute rounded-full bg-white/10"
+            style={{
+              width: 4 + i * 2,
+              height: 4 + i * 2,
+              left: `${10 + i * 11}%`,
+              bottom: "-5%",
+            }}
+            animate={{
+              y: [0, -350 - i * 80],
+              opacity: [0, 0.6, 0],
+              scale: [0.5, 1, 0.8],
+            }}
+            transition={{
+              duration: 4 + i * 0.7,
+              repeat: Infinity,
+              delay: i * 0.6,
+              ease: "easeOut",
+            }}
+          />
+        ))}
+
+        {/* Content */}
+        <motion.div
+          style={{ opacity: heroOpacity }}
+          className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32"
+        >
+          <div className="max-w-3xl">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              <Badge className="bg-white/15 text-white border-white/20 backdrop-blur-sm hover:bg-white/20 mb-6 px-4 py-1.5 text-sm font-medium">
+                <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                Trusted by hundreds of homeowners
+              </Badge>
+            </motion.div>
+
+            <motion.h1
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.8,
+                delay: 0.3,
+                ease: [0.25, 0.46, 0.45, 0.94],
+              }}
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-[1.1] tracking-tight"
+            >
+              Crystal Clear{" "}
+              <span className="relative">
+                Pools
+                <motion.span
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: 1 }}
+                  transition={{ duration: 0.8, delay: 0.8 }}
+                  className="absolute -bottom-2 left-0 right-0 h-1.5 bg-gradient-to-r from-teal-400 to-sky-400 rounded-full origin-left"
+                />
+              </span>
+              ,<br className="hidden sm:block" /> Every Single Time
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+              className="mt-6 text-lg sm:text-xl text-white/80 max-w-xl leading-relaxed"
+            >
+              Professional pool cleaning, maintenance, and repair services in
+              Glendale and the Greater Los Angeles area. Your pool, our passion.
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.7 }}
+              className="mt-10 flex flex-col sm:flex-row gap-4"
+            >
+              <Button
+                size="lg"
+                onClick={() => handleNav("contact")}
+                className="bg-white text-teal-800 hover:bg-white/90 shadow-xl shadow-black/10 rounded-xl text-base font-semibold px-8 h-13 group cursor-pointer"
+              >
+                Get Free Estimate
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => handleNav("services")}
+                className="border-white/30 text-white hover:bg-white/10 backdrop-blur-sm rounded-xl text-base font-medium px-8 h-13 cursor-pointer"
+              >
+                Our Services
+                <ChevronDown className="w-4 h-4" />
+              </Button>
+            </motion.div>
+
+            {/* Trust indicators */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.8, delay: 1 }}
+              className="mt-14 flex flex-wrap gap-8"
+            >
+              {[
+                { icon: Shield, label: "Licensed & Insured" },
+                { icon: Clock, label: "Same-Day Service" },
+                { icon: Star, label: "5-Star Rated" },
+                { icon: Heart, label: "Family Owned" },
+              ].map((item, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-2 text-white/70"
+                >
+                  <item.icon className="w-4 h-4 text-teal-400" />
+                  <span className="text-sm font-medium">{item.label}</span>
+                </div>
+              ))}
+            </motion.div>
+          </div>
+        </motion.div>
+
+        {/* Scroll indicator */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20"
+        >
+          <motion.div
+            animate={{ y: [0, 8, 0] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="w-6 h-10 rounded-full border-2 border-white/30 flex items-start justify-center p-1.5"
+          >
+            <motion.div
+              animate={{ opacity: [0.3, 1, 0.3], y: [0, 10, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="w-1.5 h-1.5 rounded-full bg-white/60"
+            />
+          </motion.div>
+        </motion.div>
+      </section>
+
+      {/* Brief Services Overview */}
+      <section className="py-24 sm:py-32 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-teal-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-50" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-sky-50 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 opacity-50" />
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <SectionReveal>
+            <motion.div
+              variants={fadeUp}
+              custom={0}
+              className="text-center max-w-2xl mx-auto mb-16"
+            >
+              <Badge className="bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100 mb-4">
+                <Droplets className="w-3.5 h-3.5 mr-1.5" />
+                Our Services
+              </Badge>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
+                Everything Your Pool{" "}
+                <span className="text-gradient-water">Needs</span>
+              </h2>
+              <p className="mt-4 text-lg text-muted-foreground">
+                From routine cleaning to complex repairs, we provide
+                comprehensive pool services tailored to your needs.
+              </p>
+            </motion.div>
+          </SectionReveal>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {homeServices.map((service, i) => (
+              <SectionReveal key={i}>
+                <motion.div variants={fadeUp} custom={i + 1}>
+                  <Card className="group relative h-full border-0 shadow-sm hover:shadow-xl hover:shadow-teal-500/5 transition-all duration-500 bg-white overflow-hidden cursor-pointer"
+                    onClick={() => handleNav("services")}
+                  >
+                    <CardContent className="p-6 pt-7">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-teal-50 to-sky-50 flex items-center justify-center mb-5 group-hover:from-teal-500 group-hover:to-teal-600 transition-all duration-500 shadow-sm">
+                        <service.icon className="w-6 h-6 text-teal-600 group-hover:text-white transition-colors duration-500" />
+                      </div>
+                      <h3 className="text-xl font-bold mb-2 group-hover:text-teal-700 transition-colors duration-300">
+                        {service.title}
+                      </h3>
+                      <p className="text-muted-foreground text-sm leading-relaxed">
+                        {service.desc}
+                      </p>
+                    </CardContent>
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-teal-500 to-sky-500 scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
+                  </Card>
+                </motion.div>
+              </SectionReveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Quick Stats Strip */}
+      <section className="py-20 bg-gradient-to-b from-teal-50/50 to-white relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div
+            ref={statsRef}
+            className="grid grid-cols-2 lg:grid-cols-4 gap-6"
+          >
+            {homeStats.map((stat, i) => (
+              <motion.div
+                key={i}
+                variants={scaleIn}
+                custom={i}
+                initial="hidden"
+                animate={statsInView ? "visible" : "hidden"}
+                className="relative bg-white rounded-2xl p-6 sm:p-8 text-center shadow-sm hover:shadow-lg hover:shadow-teal-500/5 transition-all duration-300"
+              >
+                <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-gradient-water">
+                  {statsInView ? (
+                    <Counter
+                      target={stat.value}
+                      suffix={stat.suffix}
+                      decimals={stat.decimals || 0}
+                    />
+                  ) : (
+                    "0"
+                  )}
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground font-medium">
+                  {stat.label}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Testimonials */}
+      <section className="py-24 sm:py-32 bg-gradient-to-b from-white to-teal-50/30 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <SectionReveal>
+            <motion.div
+              variants={fadeUp}
+              custom={0}
+              className="text-center max-w-2xl mx-auto mb-16"
+            >
+              <Badge className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 mb-4">
+                <Star className="w-3.5 h-3.5 mr-1.5" />
+                Testimonials
+              </Badge>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
+                What Our <span className="text-gradient-water">Customers</span>{" "}
+                Say
+              </h2>
+            </motion.div>
+          </SectionReveal>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {homeTestimonials.map((review, i) => (
+              <SectionReveal key={i}>
+                <motion.div
+                  variants={fadeUp}
+                  custom={i + 1}
+                  className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 relative"
+                >
+                  <div className="absolute -top-3 left-6 w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-lg shadow-teal-500/20">
+                    <Quote className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="flex gap-0.5 mb-4 pt-2">
+                    {[...Array(review.rating)].map((_, j) => (
+                      <Star
+                        key={j}
+                        className="w-4 h-4 fill-amber-400 text-amber-400"
+                      />
+                    ))}
+                  </div>
+                  <p className="text-sm text-foreground/80 leading-relaxed mb-4">
+                    &ldquo;{review.text}&rdquo;
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500 to-sky-500 flex items-center justify-center text-white font-bold text-sm">
+                      {review.name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm">{review.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {review.location}
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              </SectionReveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Banner */}
+      <section className="py-20 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-teal-600 to-teal-700" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_50%,rgba(14,165,233,0.2),transparent_60%)]" />
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <SectionReveal>
+            <motion.div variants={fadeUp} custom={0}>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight">
+                Ready for Crystal Clear Water?
+              </h2>
+              <p className="mt-4 text-lg text-teal-100/80 max-w-2xl mx-auto">
+                Join hundreds of satisfied homeowners who trust Blessed Pool
+                Service for their pool care needs.
+              </p>
+              <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+                <Button
+                  size="lg"
+                  onClick={() => handleNav("contact")}
+                  className="bg-white text-teal-800 hover:bg-white/90 rounded-xl text-base font-semibold px-8 shadow-xl cursor-pointer"
+                >
+                  Get Your Free Estimate
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={() => handleNav("services")}
+                  className="border-white/30 text-white hover:bg-white/10 rounded-xl text-base font-medium px-8 cursor-pointer"
+                >
+                  Explore Services
+                </Button>
+              </div>
+            </motion.div>
+          </SectionReveal>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* ================================================================== */
+/*  2. SERVICES PAGE                                                    */
+/* ================================================================== */
+const detailedServices = [
+  {
+    icon: Droplets,
+    title: "Weekly Pool Cleaning",
+    desc: "Our most popular service keeps your pool swim-ready all week long with thorough cleaning and water chemistry management.",
+    items: [
+      "Vacuuming the pool floor",
+      "Skimming surface debris",
+      "Brushing walls & tile line",
+      "Emptying skimmer & pump baskets",
+      "Testing & balancing water chemistry",
+      "Checking equipment operation",
+      "Adding chemicals as needed",
+    ],
+    image: "/pool-service.jpg",
+  },
+  {
+    icon: Wrench,
+    title: "Pool Equipment Repair",
+    desc: "Expert diagnosis and repair for all pool equipment. We service all major brands and get your systems running smoothly again.",
+    items: [
+      "Pump motor repair/replacement",
+      "Filter diagnosis & repair",
+      "Heater troubleshooting",
+      "Timer & automation repair",
+      "Leak detection & repair",
+      "Pressure side cleaner repair",
+    ],
+    image: "/service-repair.jpg",
+  },
+  {
+    icon: Waves,
+    title: "Full Pool Maintenance",
+    desc: "Comprehensive maintenance plans that cover every aspect of pool care, from cleaning to equipment monitoring and seasonal care.",
+    items: [
+      "Comprehensive weekly cleaning",
+      "Chemical management included",
+      "Equipment monitoring",
+      "Seasonal opening & closing",
+      "Filter media replacement",
+      "Salt cell inspection",
+    ],
+    image: "/hero-pool.png",
+  },
+  {
+    icon: ThermometerSun,
+    title: "Pool Heater Services",
+    desc: "Stay comfortable year-round with our complete heater services. We work with gas, electric, and solar heating systems.",
+    items: [
+      "Gas heater installation & repair",
+      "Electric heat pump service",
+      "Solar heating systems",
+      "Thermostat & control replacement",
+      "Efficiency optimization",
+    ],
+    image: "/pool-area.jpg",
+  },
+  {
+    icon: Sparkles,
+    title: "Tile & Surface Care",
+    desc: "Restore your pool's beauty with professional tile cleaning, acid washing, and surface repair services.",
+    items: [
+      "Tile cleaning & calcium removal",
+      "Acid washing",
+      "Plaster repair",
+      "Surface resurfacing consultation",
+      "Deck cleaning",
+    ],
+    image: "/about-team.jpg",
+  },
+  {
+    icon: Zap,
+    title: "Emergency & Green Pool",
+    desc: "When disaster strikes, we respond fast. Same-day emergency service for green pools, equipment failures, and storm damage.",
+    items: [
+      "Same-day emergency response",
+      "Green-to-clean transformation",
+      "Storm damage recovery",
+      "Equipment failure response",
+      "Algae treatment",
+    ],
+    image: "/pool-service.jpg",
+  },
+];
+
+const servicePlans = [
+  {
+    name: "Basic",
+    price: "$85",
+    period: "/month",
+    features: [
+      "Weekly pool cleaning",
+      "Water chemistry balancing",
+      "Surface skimming & vacuuming",
+      "Basket emptying",
+      "Chemicals included",
+    ],
+    highlight: false,
+  },
+  {
+    name: "Premium",
+    price: "$120",
+    period: "/month",
+    features: [
+      "Everything in Basic",
+      "Equipment checks each visit",
+      "Filter cleaning monthly",
+      "Tile brushing weekly",
+      "Priority scheduling",
+      "Seasonal opening & closing",
+    ],
+    highlight: true,
+  },
+  {
+    name: "Ultimate",
+    price: "$165",
+    period: "/month",
+    features: [
+      "Everything in Premium",
+      "Dedicated technician",
+      "Discounts on all repairs",
+      "Salt system maintenance",
+      "Emergency response included",
+      "Monthly detailed report",
+    ],
+    highlight: false,
+  },
+];
+
+const serviceFAQs = [
+  {
+    q: "How often should my pool be serviced?",
+    a: "For optimal water quality and equipment longevity, we recommend weekly service. However, bi-weekly service can work for pools with lighter usage. We'll help you determine the best schedule based on your pool's unique needs.",
+  },
+  {
+    q: "What's included in a weekly pool cleaning?",
+    a: "Our weekly cleaning includes vacuuming, skimming, brushing walls and tile lines, emptying baskets, testing and balancing water chemistry, checking equipment operation, and adding chemicals as needed.",
+  },
+  {
+    q: "Do you provide your own chemicals?",
+    a: "Yes! All chemicals needed for water chemistry balancing are included in our service plans. We use high-quality, professional-grade products and carry everything we need on our service vehicles.",
+  },
+  {
+    q: "How do you handle green pools?",
+    a: "We offer same-day emergency response for green pools. Our green-to-clean service involves multiple treatments including heavy shocking, algaecide application, thorough cleaning, and filtration. Most pools can be restored within 2-3 days.",
+  },
+  {
+    q: "What areas do you serve?",
+    a: "We serve Glendale, Burbank, Pasadena, and the greater Los Angeles area, as well as Orange County communities including Garden Grove, Anaheim, and surrounding cities. Contact us to check availability in your area.",
+  },
+  {
+    q: "Are you licensed and insured?",
+    a: "Yes, Blessed Pool Service is fully licensed and insured. We carry comprehensive liability insurance to protect both our team and your property. You can have complete peace of mind with our service.",
+  },
+  {
+    q: "How quickly can you start service?",
+    a: "We can typically begin service within 1-2 business days after your free assessment. For emergency situations, we offer same-day response. Contact us to schedule your assessment.",
+  },
+  {
+    q: "What happens if my equipment breaks?",
+    a: "If we notice equipment issues during a scheduled visit, we'll diagnose the problem and provide a transparent repair quote before any work begins. Premium and Ultimate plan members receive priority repair scheduling and discounts.",
+  },
+];
+
+function ServicesPage({ onNavigate }: { onNavigate: (page: PageKey) => void }) {
+  return (
+    <div>
+      {/* Services Hero */}
+      <section className="relative py-24 sm:py-32 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-teal-600 via-teal-700 to-teal-800" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(14,165,233,0.15),transparent_60%)]" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+          >
+            <Badge className="bg-white/15 text-white border-white/20 backdrop-blur-sm hover:bg-white/20 mb-6 px-4 py-1.5 text-sm font-medium">
+              <Droplets className="w-3.5 h-3.5 mr-1.5" />
+              Our Services
+            </Badge>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white tracking-tight">
+              Complete Pool Care{" "}
+              <span className="bg-gradient-to-r from-teal-200 to-sky-200 bg-clip-text text-transparent">
+                Solutions
+              </span>
+            </h1>
+            <p className="mt-6 text-lg text-teal-100/80 max-w-2xl mx-auto">
+              From weekly cleaning to emergency repairs, we offer a full range
+              of professional pool services to keep your pool in perfect
+              condition.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Detailed Services */}
+      <section className="py-24 sm:py-32 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {detailedServices.map((service, i) => (
+            <SectionReveal key={i}>
+              <motion.div
+                variants={fadeUp}
+                custom={0}
+                className={`flex flex-col ${
+                  i % 2 === 0 ? "lg:flex-row" : "lg:flex-row-reverse"
+                } gap-8 lg:gap-12 items-center mb-20 last:mb-0`}
+              >
+                {/* Image */}
+                <div className="w-full lg:w-1/2">
+                  <div className="relative rounded-2xl overflow-hidden shadow-xl aspect-[4/3]">
+                    <div
+                      className="absolute inset-0 bg-cover bg-center"
+                      style={{ backgroundImage: `url('${service.image}')` }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-teal-900/40 to-transparent" />
+                    <div className="absolute bottom-4 left-4">
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-lg">
+                        <service.icon className="w-7 h-7 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="w-full lg:w-1/2">
+                  <h3 className="text-2xl sm:text-3xl font-bold mb-3">
+                    {service.title}
+                  </h3>
+                  <p className="text-muted-foreground leading-relaxed mb-6">
+                    {service.desc}
+                  </p>
+                  <ul className="space-y-2.5">
+                    {service.items.map((item, j) => (
+                      <motion.li
+                        key={j}
+                        variants={fadeIn}
+                        custom={j}
+                        className="flex items-start gap-2.5"
+                      >
+                        <CheckCircle2 className="w-5 h-5 text-teal-500 mt-0.5 shrink-0" />
+                        <span className="text-sm text-foreground/80">
+                          {item}
+                        </span>
+                      </motion.li>
+                    ))}
+                  </ul>
+                  <Button
+                    onClick={() => onNavigate("contact")}
+                    className="mt-6 bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white rounded-xl cursor-pointer"
+                  >
+                    Get Quote
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            </SectionReveal>
+          ))}
+        </div>
+      </section>
+
+      {/* Service Plans */}
+      <section className="py-24 sm:py-32 bg-gradient-to-b from-teal-50/50 to-white relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <SectionReveal>
+            <motion.div
+              variants={fadeUp}
+              custom={0}
+              className="text-center max-w-2xl mx-auto mb-16"
+            >
+              <Badge className="bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100 mb-4">
+                <Crown className="w-3.5 h-3.5 mr-1.5" />
+                Service Plans
+              </Badge>
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
+                Choose Your{" "}
+                <span className="text-gradient-water">Perfect Plan</span>
+              </h2>
+              <p className="mt-4 text-muted-foreground">
+                Flexible service plans designed to fit every pool and every
+                budget.
+              </p>
+            </motion.div>
+          </SectionReveal>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+            {servicePlans.map((plan, i) => (
+              <SectionReveal key={i}>
+                <motion.div variants={fadeUp} custom={i + 1}>
+                  <Card
+                    className={`relative h-full ${
+                      plan.highlight
+                        ? "border-2 border-teal-500 shadow-xl shadow-teal-500/10"
+                        : "border-0 shadow-sm"
+                    }`}
+                  >
+                    {plan.highlight && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                        <Badge className="bg-gradient-to-r from-teal-500 to-teal-600 text-white border-0 px-4">
+                          Most Popular
+                        </Badge>
+                      </div>
+                    )}
+                    <CardHeader className="text-center pb-0">
+                      <CardTitle className="text-xl">{plan.name}</CardTitle>
+                      <CardDescription className="text-sm">
+                        {plan.name === "Basic"
+                          ? "Weekly cleaning + chemicals"
+                          : plan.name === "Premium"
+                            ? "Equipment checks + filter cleaning"
+                            : "Priority scheduling + repair discounts"}
+                      </CardDescription>
+                      <div className="pt-4 pb-2">
+                        <span className="text-4xl font-bold text-gradient-water">
+                          {plan.price}
+                        </span>
+                        <span className="text-muted-foreground text-sm">
+                          {plan.period}
+                        </span>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-3">
+                        {plan.features.map((f, j) => (
+                          <li key={j} className="flex items-start gap-2.5">
+                            <CheckCircle2 className="w-4 h-4 text-teal-500 mt-0.5 shrink-0" />
+                            <span className="text-sm text-foreground/80">
+                              {f}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                      <Button
+                        onClick={() => onNavigate("contact")}
+                        className={`w-full mt-6 rounded-xl cursor-pointer ${
+                          plan.highlight
+                            ? "bg-gradient-to-r from-teal-600 to-teal-700 text-white hover:from-teal-700 hover:to-teal-800"
+                            : ""
+                        }`}
+                        variant={plan.highlight ? "default" : "outline"}
+                      >
+                        Get Started
+                        <ArrowRight className="w-4 h-4" />
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </SectionReveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="py-24 sm:py-32">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <SectionReveal>
+            <motion.div
+              variants={fadeUp}
+              custom={0}
+              className="text-center mb-12"
+            >
+              <Badge className="bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100 mb-4">
+                <MessageCircle className="w-3.5 h-3.5 mr-1.5" />
+                FAQ
+              </Badge>
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
+                Frequently Asked{" "}
+                <span className="text-gradient-water">Questions</span>
+              </h2>
+            </motion.div>
+          </SectionReveal>
+
+          <SectionReveal>
+            <motion.div variants={fadeIn} custom={0}>
+              <Accordion type="single" collapsible className="space-y-2">
+                {serviceFAQs.map((faq, i) => (
+                  <AccordionItem
+                    key={i}
+                    value={`faq-${i}`}
+                    className="bg-white rounded-xl border shadow-sm px-6"
+                  >
+                    <AccordionTrigger className="text-left font-semibold text-sm hover:no-underline">
+                      {faq.q}
+                    </AccordionTrigger>
+                    <AccordionContent className="text-muted-foreground text-sm leading-relaxed">
+                      {faq.a}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </motion.div>
+          </SectionReveal>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* ================================================================== */
+/*  3. ABOUT PAGE                                                       */
+/* ================================================================== */
+const values = [
+  {
+    icon: Shield,
+    title: "Integrity",
+    desc: "Honest pricing, transparent communication, no hidden fees. We build trust through every interaction.",
+  },
+  {
+    icon: Clock,
+    title: "Reliability",
+    desc: "Consistent schedules, on-time arrivals, dedicated technicians. You can always count on us.",
+  },
+  {
+    icon: Award,
+    title: "Excellence",
+    desc: "Trained professionals, quality products, attention to detail. We strive for perfection in every job.",
+  },
+  {
+    icon: Heart,
+    title: "Community",
+    desc: "Serving our neighbors, supporting local businesses, building lasting relationships in our community.",
+  },
+];
+
+const comparisons = [
+  {
+    feature: "Response Time",
+    blessed: "Same-Day",
+    typical: "2-5 Days",
+  },
+  {
+    feature: "Pricing Transparency",
+    blessed: "Upfront & Clear",
+    typical: "Hidden Fees",
+  },
+  {
+    feature: "Technician Training",
+    blessed: "Certified Pros",
+    typical: "Variable",
+  },
+  {
+    feature: "Satisfaction Guarantee",
+    blessed: "100% Guaranteed",
+    typical: "Limited",
+  },
+  {
+    feature: "Communication",
+    blessed: "Real-Time Updates",
+    typical: "Minimal",
+  },
+];
+
+const certifications = [
+  { icon: FileCheck, label: "Licensed Contractor" },
+  { icon: ShieldCheck, label: "Fully Insured" },
+  { icon: Heart, label: "CPR/First Aid Certified" },
+  { icon: Building2, label: "OSHA Compliant" },
+  { icon: Leaf, label: "EPA Compliant Chemical Use" },
+  { icon: GraduationCap, label: "Continuous Training" },
+];
+
+function AboutPage() {
+  return (
+    <div>
+      {/* About Hero */}
+      <section className="relative py-32 sm:py-40 overflow-hidden">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: "url('/about-team.jpg')" }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-teal-950/90 via-teal-900/80 to-teal-950/70" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+          >
+            <Badge className="bg-white/15 text-white border-white/20 backdrop-blur-sm hover:bg-white/20 mb-6 px-4 py-1.5 text-sm font-medium">
+              <Users className="w-3.5 h-3.5 mr-1.5" />
+              About Us
+            </Badge>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white tracking-tight">
+              A Family Legacy of{" "}
+              <span className="bg-gradient-to-r from-teal-300 to-sky-300 bg-clip-text text-transparent">
+                Pool Excellence
+              </span>
+            </h1>
+            <p className="mt-6 text-lg text-teal-100/80 max-w-2xl mx-auto">
+              Since 2009, Blessed Pool Service has been the trusted name in
+              professional pool care across Greater Los Angeles.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Our Story */}
+      <section className="py-24 sm:py-32">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <SectionReveal>
+              <motion.div variants={fadeUp} custom={0}>
+                <Badge className="bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100 mb-4">
+                  <Heart className="w-3.5 h-3.5 mr-1.5" />
+                  Our Story
+                </Badge>
+                <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-6">
+                  From One Man&apos;s Passion to a{" "}
+                  <span className="text-gradient-water">Trusted Team</span>
+                </h2>
+                <div className="space-y-4 text-muted-foreground leading-relaxed">
+                  <p>
+                    In 2009, Hector Ramirez set out with a simple mission: to
+                    provide honest, reliable pool service that homeowners could
+                    truly trust. What began as a one-man operation in Glendale
+                    has grown into one of the area&apos;s most respected pool
+                    service companies.
+                  </p>
+                  <p>
+                    Hector&apos;s passion for pool maintenance started early,
+                    learning the trade through hands-on experience and a
+                    commitment to excellence. His dedication to doing things the
+                    right way — never cutting corners, always communicating
+                    openly — quickly earned the trust of homeowners throughout
+                    the community.
+                  </p>
+                  <p>
+                    Today, Blessed Pool Service carries forward those same core
+                    values. Our team of trained professionals serves hundreds of
+                    satisfied customers across Glendale, Pasadena, Burbank, and
+                    throughout Greater Los Angeles and Orange County.
+                  </p>
+                </div>
+              </motion.div>
+            </SectionReveal>
+
+            <SectionReveal>
+              <motion.div variants={fadeUp} custom={1}>
+                <div className="relative rounded-2xl overflow-hidden shadow-xl aspect-[4/3]">
+                  <div
+                    className="absolute inset-0 bg-cover bg-center"
+                    style={{ backgroundImage: "url('/pool-service.jpg')" }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-teal-900/30 to-transparent" />
+                </div>
+              </motion.div>
+            </SectionReveal>
+          </div>
+        </div>
+      </section>
+
+      {/* Mission & Values */}
+      <section className="py-24 sm:py-32 bg-gradient-to-b from-teal-50/50 to-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <SectionReveal>
+            <motion.div
+              variants={fadeUp}
+              custom={0}
+              className="text-center max-w-2xl mx-auto mb-16"
+            >
+              <Badge className="bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100 mb-4">
+                <Target className="w-3.5 h-3.5 mr-1.5" />
+                Our Values
+              </Badge>
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
+                What We <span className="text-gradient-water">Stand For</span>
+              </h2>
+            </motion.div>
+          </SectionReveal>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {values.map((v, i) => (
+              <SectionReveal key={i}>
+                <motion.div variants={fadeUp} custom={i + 1}>
+                  <Card className="h-full border-0 shadow-sm hover:shadow-lg hover:shadow-teal-500/5 transition-all duration-300 group">
+                    <CardContent className="p-6 text-center">
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-50 to-sky-50 flex items-center justify-center mx-auto mb-5 group-hover:from-teal-500 group-hover:to-teal-600 transition-all duration-500">
+                        <v.icon className="w-7 h-7 text-teal-600 group-hover:text-white transition-colors duration-500" />
+                      </div>
+                      <h3 className="font-bold text-lg mb-2">{v.title}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {v.desc}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </SectionReveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Why Choose Blessed Pool - Comparison */}
+      <section className="py-24 sm:py-32">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <SectionReveal>
+            <motion.div
+              variants={fadeUp}
+              custom={0}
+              className="text-center mb-12"
+            >
+              <Badge className="bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100 mb-4">
+                <TrendingUp className="w-3.5 h-3.5 mr-1.5" />
+                The Difference
+              </Badge>
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
+                Why Choose{" "}
+                <span className="text-gradient-water">Blessed Pool</span>
+              </h2>
+            </motion.div>
+          </SectionReveal>
+
+          <SectionReveal>
+            <motion.div variants={fadeIn} custom={0}>
+              <Card className="border-0 shadow-lg overflow-hidden">
+                <div className="grid grid-cols-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white p-4 font-bold text-sm">
+                  <span className="pl-4">Feature</span>
+                  <span className="text-center">Blessed Pool</span>
+                  <span className="text-center text-teal-100/70">
+                    Typical Competitor
+                  </span>
+                </div>
+                {comparisons.map((c, i) => (
+                  <div
+                    key={i}
+                    className={`grid grid-cols-3 p-4 text-sm ${
+                      i % 2 === 0 ? "bg-white" : "bg-teal-50/30"
+                    }`}
+                  >
+                    <span className="font-medium pl-4">{c.feature}</span>
+                    <span className="text-center font-semibold text-teal-700 flex items-center justify-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      {c.blessed}
+                    </span>
+                    <span className="text-center text-muted-foreground">
+                      {c.typical}
+                    </span>
+                  </div>
+                ))}
+              </Card>
+            </motion.div>
+          </SectionReveal>
+        </div>
+      </section>
+
+      {/* Certifications */}
+      <section className="py-24 sm:py-32 bg-gradient-to-b from-white to-teal-50/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <SectionReveal>
+            <motion.div
+              variants={fadeUp}
+              custom={0}
+              className="text-center max-w-2xl mx-auto mb-12"
+            >
+              <Badge className="bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100 mb-4">
+                <ShieldCheck className="w-3.5 h-3.5 mr-1.5" />
+                Certifications &amp; Trust
+              </Badge>
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
+                Qualified &amp;{" "}
+                <span className="text-gradient-water">Certified</span>
+              </h2>
+            </motion.div>
+          </SectionReveal>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            {certifications.map((c, i) => (
+              <SectionReveal key={i}>
+                <motion.div
+                  variants={scaleIn}
+                  custom={i}
+                  className="bg-white rounded-2xl p-5 text-center shadow-sm hover:shadow-lg hover:shadow-teal-500/5 transition-all duration-300 group"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-50 to-sky-50 flex items-center justify-center mx-auto mb-3 group-hover:from-teal-500 group-hover:to-teal-600 transition-all duration-500">
+                    <c.icon className="w-6 h-6 text-teal-600 group-hover:text-white transition-colors duration-500" />
+                  </div>
+                  <p className="text-xs font-medium text-foreground/80">
+                    {c.label}
+                  </p>
+                </motion.div>
+              </SectionReveal>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* ================================================================== */
+/*  4. PROCESS PAGE                                                     */
+/* ================================================================== */
+const processSteps = [
+  {
+    step: 1,
+    icon: Phone,
+    title: "Get In Touch",
+    desc: "Call, email, or fill out our contact form. Describe your pool and what services you need. We respond within 24 hours to discuss your requirements.",
+    image: "/pool-service.jpg",
+  },
+  {
+    step: 2,
+    icon: ClipboardCheck,
+    title: "Free On-Site Assessment",
+    desc: "We visit your property to inspect your pool, equipment, and surrounding area. We evaluate water chemistry, check all systems, and document any issues — no obligation.",
+    image: "/pool-area.jpg",
+  },
+  {
+    step: 3,
+    icon: FileCheck,
+    title: "Custom Service Plan",
+    desc: "Based on our assessment, we create a tailored service plan with transparent pricing. We explain everything clearly and answer all your questions before any work begins.",
+    image: "/about-team.jpg",
+  },
+  {
+    step: 4,
+    icon: Zap,
+    title: "Expert Execution",
+    desc: "Our trained technicians carry out the work with precision using professional-grade equipment and products. We keep you informed every step of the way.",
+    image: "/hero-pool.png",
+  },
+];
+
+const timelineItems = [
+  { day: "Day 1", label: "Assessment", desc: "On-site inspection & evaluation" },
+  { day: "Day 2-3", label: "Plan Approval", desc: "Review & approve your custom plan" },
+  { day: "Week 1", label: "First Service", desc: "Your first professional cleaning" },
+  { day: "Ongoing", label: "Scheduled Care", desc: "Consistent, reliable maintenance" },
+];
+
+function ProcessPage({ onNavigate }: { onNavigate: (page: PageKey) => void }) {
+  return (
+    <div>
+      {/* Process Hero */}
+      <section className="relative py-24 sm:py-32 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-teal-600 via-teal-700 to-teal-800" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(14,165,233,0.15),transparent_60%)]" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+          >
+            <Badge className="bg-white/15 text-white border-white/20 backdrop-blur-sm hover:bg-white/20 mb-6 px-4 py-1.5 text-sm font-medium">
+              <Zap className="w-3.5 h-3.5 mr-1.5" />
+              How It Works
+            </Badge>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white tracking-tight">
+              Your Journey to a{" "}
+              <span className="bg-gradient-to-r from-teal-200 to-sky-200 bg-clip-text text-transparent">
+                Perfect Pool
+              </span>
+            </h1>
+            <p className="mt-6 text-lg text-teal-100/80 max-w-2xl mx-auto">
+              Getting started is simple. Follow these four steps and
+              you&apos;ll be enjoying crystal clear water in no time.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Steps */}
+      <section className="py-24 sm:py-32">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {processSteps.map((step, i) => (
+            <SectionReveal key={i}>
+              <motion.div
+                variants={fadeUp}
+                custom={0}
+                className={`flex flex-col ${
+                  i % 2 === 0 ? "lg:flex-row" : "lg:flex-row-reverse"
+                } gap-8 lg:gap-12 items-center mb-24 last:mb-0`}
+              >
+                {/* Step number + image */}
+                <div className="w-full lg:w-1/2 relative">
+                  <div className="relative rounded-2xl overflow-hidden shadow-xl aspect-[4/3]">
+                    <div
+                      className="absolute inset-0 bg-cover bg-center"
+                      style={{ backgroundImage: `url('${step.image}')` }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-teal-900/40 to-transparent" />
+                  </div>
+                  <div className="absolute -top-4 -left-4 lg:-top-6 lg:-left-6 w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-xl shadow-teal-500/20">
+                    <span className="text-2xl font-bold text-white">
+                      {step.step}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="w-full lg:w-1/2">
+                  <div className="flex items-center gap-3 mb-3">
+                    <step.icon className="w-6 h-6 text-teal-600" />
+                    <h3 className="text-2xl sm:text-3xl font-bold">
+                      {step.title}
+                    </h3>
+                  </div>
+                  <p className="text-muted-foreground leading-relaxed text-lg">
+                    {step.desc}
+                  </p>
+                </div>
+              </motion.div>
+            </SectionReveal>
+          ))}
+        </div>
+      </section>
+
+      {/* Timeline */}
+      <section className="py-24 sm:py-32 bg-gradient-to-b from-teal-50/50 to-white">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <SectionReveal>
+            <motion.div
+              variants={fadeUp}
+              custom={0}
+              className="text-center mb-16"
+            >
+              <Badge className="bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100 mb-4">
+                <CalendarCheck className="w-3.5 h-3.5 mr-1.5" />
+                Timeline
+              </Badge>
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
+                What to <span className="text-gradient-water">Expect</span>
+              </h2>
+            </motion.div>
+          </SectionReveal>
+
+          <div className="relative">
+            {/* Connector line */}
+            <div className="absolute top-6 left-0 right-0 h-0.5 bg-teal-200 hidden md:block" />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
+              {timelineItems.map((item, i) => (
+                <SectionReveal key={i}>
+                  <motion.div
+                    variants={fadeUp}
+                    custom={i + 1}
+                    className="text-center relative"
+                  >
+                    {/* Dot on connector */}
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-teal-500/20 relative z-10">
+                      <CircleDot className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="bg-white rounded-2xl p-5 shadow-sm hover:shadow-lg transition-all duration-300">
+                      <p className="text-xs font-bold text-teal-600 uppercase tracking-wider mb-1">
+                        {item.day}
+                      </p>
+                      <p className="font-bold text-lg mb-1">{item.label}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {item.desc}
+                      </p>
+                    </div>
+                  </motion.div>
+                </SectionReveal>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Satisfaction Guarantee */}
+      <section className="py-20">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <SectionReveal>
+            <motion.div
+              variants={scaleIn}
+              custom={0}
+              className="bg-gradient-to-br from-teal-600 to-teal-700 rounded-3xl p-8 sm:p-12 text-center text-white relative overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(14,165,233,0.15),transparent_60%)]" />
+              <div className="relative">
+                <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center mx-auto mb-6">
+                  <ShieldCheck className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-2xl sm:text-3xl font-bold mb-3">
+                  100% Satisfaction Guarantee
+                </h3>
+                <p className="text-teal-100/80 max-w-xl mx-auto mb-6 leading-relaxed">
+                  If you&apos;re not 100% satisfied with our service,
+                  we&apos;ll make it right at no additional cost. Your
+                  satisfaction is our top priority — that&apos;s the Blessed
+                  Pool promise.
+                </p>
+                <Button
+                  size="lg"
+                  onClick={() => onNavigate("contact")}
+                  className="bg-white text-teal-800 hover:bg-white/90 rounded-xl font-semibold shadow-xl cursor-pointer"
+                >
+                  Get Started Today
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </motion.div>
+          </SectionReveal>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* ================================================================== */
+/*  5. AREAS PAGE                                                       */
+/* ================================================================== */
+const areaGroups = [
+  {
+    region: "Glendale & Surrounding",
+    cities: [
+      "Glendale",
+      "Burbank",
+      "Pasadena",
+      "Eagle Rock",
+      "Los Feliz",
+      "Silver Lake",
+      "Highland Park",
+      "South Pasadena",
+    ],
+  },
+  {
+    region: "San Gabriel Valley",
+    cities: [
+      "San Marino",
+      "Alhambra",
+      "Montebello",
+      "La Crescenta",
+      "La Cañada",
+      "Arcadia",
+    ],
+  },
+  {
+    region: "Orange County",
+    cities: [
+      "Garden Grove",
+      "Anaheim",
+      "Orange",
+      "Fullerton",
+      "Santa Ana",
+      "Westminster",
+    ],
+  },
+];
+
+function AreasPage({ onNavigate }: { onNavigate: (page: PageKey) => void }) {
+  return (
+    <div>
+      {/* Areas Hero */}
+      <section className="relative py-32 sm:py-40 overflow-hidden">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: "url('/pool-area.jpg')" }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-teal-950/90 via-teal-900/80 to-teal-950/70" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+          >
+            <Badge className="bg-white/15 text-white border-white/20 backdrop-blur-sm hover:bg-white/20 mb-6 px-4 py-1.5 text-sm font-medium">
+              <MapPin className="w-3.5 h-3.5 mr-1.5" />
+              Service Areas
+            </Badge>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white tracking-tight">
+              Serving Greater{" "}
+              <span className="bg-gradient-to-r from-teal-300 to-sky-300 bg-clip-text text-transparent">
+                Los Angeles &amp; Orange County
+              </span>
+            </h1>
+            <p className="mt-6 text-lg text-teal-100/80 max-w-2xl mx-auto">
+              Proudly serving communities throughout Los Angeles County and
+              Orange County with professional pool care.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Main Areas Grid */}
+      <section className="py-24 sm:py-32">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {areaGroups.map((group, i) => (
+              <SectionReveal key={i}>
+                <motion.div variants={fadeUp} custom={i + 1}>
+                  <Card className="h-full border-0 shadow-sm hover:shadow-xl hover:shadow-teal-500/5 transition-all duration-300">
+                    <CardHeader className="pb-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <MapPin className="w-5 h-5 text-teal-600" />
+                        <CardTitle className="text-lg">
+                          {group.region}
+                        </CardTitle>
+                      </div>
+                      <CardDescription>
+                        {group.cities.length} cities served
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-2">
+                        {group.cities.map((city, j) => (
+                          <div
+                            key={j}
+                            className="flex items-center gap-1.5 text-sm text-foreground/80"
+                          >
+                            <div className="w-1.5 h-1.5 rounded-full bg-teal-500 shrink-0" />
+                            {city}
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </SectionReveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Don't See Your Area */}
+      <section className="py-20 bg-gradient-to-b from-teal-50/50 to-white">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <SectionReveal>
+            <motion.div variants={fadeUp} custom={0}>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-4">
+                Don&apos;t See Your Area?
+              </h2>
+              <p className="text-muted-foreground mb-8 leading-relaxed">
+                We&apos;re constantly expanding! Contact us to check if we serve
+                your area. We may be able to accommodate your location.
+              </p>
+              <Button
+                size="lg"
+                onClick={() => onNavigate("contact")}
+                className="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white rounded-xl cursor-pointer"
+              >
+                Contact Us to Check
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </motion.div>
+          </SectionReveal>
+        </div>
+      </section>
+
+      {/* Service Coverage Details */}
+      <section className="py-24 sm:py-32">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <SectionReveal>
+              <motion.div variants={fadeUp} custom={0}>
+                <Card className="h-full border-0 shadow-sm text-center">
+                  <CardContent className="p-6 pt-7">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-50 to-sky-50 flex items-center justify-center mx-auto mb-5">
+                      <MapPin className="w-7 h-7 text-teal-600" />
+                    </div>
+                    <h3 className="font-bold text-lg mb-2">Wide Coverage</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      We serve a broad area spanning Los Angeles County and
+                      Orange County, covering over 20 communities within our
+                      service radius.
+                    </p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </SectionReveal>
+            <SectionReveal>
+              <motion.div variants={fadeUp} custom={1}>
+                <Card className="h-full border-0 shadow-sm text-center">
+                  <CardContent className="p-6 pt-7">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-50 to-sky-50 flex items-center justify-center mx-auto mb-5">
+                      <Clock className="w-7 h-7 text-teal-600" />
+                    </div>
+                    <h3 className="font-bold text-lg mb-2">
+                      Quick Response Times
+                    </h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Most service calls are responded to within 24 hours.
+                      Emergency calls receive same-day response across our
+                      entire service area.
+                    </p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </SectionReveal>
+            <SectionReveal>
+              <motion.div variants={fadeUp} custom={2}>
+                <Card className="h-full border-0 shadow-sm text-center">
+                  <CardContent className="p-6 pt-7">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-50 to-sky-50 flex items-center justify-center mx-auto mb-5">
+                      <Radio className="w-7 h-7 text-teal-600" />
+                    </div>
+                    <h3 className="font-bold text-lg mb-2">
+                      Growing Every Day
+                    </h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Our service area continues to expand as we hire more
+                      technicians. Contact us even if your city isn&apos;t
+                      listed — we may still serve you!
+                    </p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </SectionReveal>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* ================================================================== */
+/*  6. CONTACT PAGE                                                     */
+/* ================================================================== */
+const contactFAQs = [
+  {
+    q: "What's the best way to reach you?",
+    a: "You can call us at (714) 561-8301, email us at blessedpoolservice@gmail.com, or use the contact form on this page. We respond within 24 hours.",
+  },
+  {
+    q: "Do you offer free estimates?",
+    a: "Yes! We offer free, no-obligation on-site assessments. We'll visit your property, evaluate your pool, and provide a transparent quote before any work begins.",
+  },
+  {
+    q: "What are your hours?",
+    a: "We're open Monday through Saturday from 7:00 AM to 6:00 PM. We're closed on Sundays. Emergency service is available outside regular hours when possible.",
+  },
+  {
+    q: "How soon can I get service?",
+    a: "We can typically schedule your free assessment within 1-2 business days. For emergencies, we offer same-day response. Contact us to check availability.",
+  },
+];
+
+function ContactPage() {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    service: "",
+    contactMethod: "",
+    message: "",
+  });
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    // Simulate submission
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    setLoading(false);
+    setSubmitted(true);
+  };
+
+  return (
+    <div>
+      {/* Contact Hero */}
+      <section className="relative py-24 sm:py-32 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-teal-600 via-teal-700 to-teal-800" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_80%,rgba(14,165,233,0.15),transparent_60%)]" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+          >
+            <Badge className="bg-white/15 text-white border-white/20 backdrop-blur-sm hover:bg-white/20 mb-6 px-4 py-1.5 text-sm font-medium">
+              <Mail className="w-3.5 h-3.5 mr-1.5" />
+              Get In Touch
+            </Badge>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white tracking-tight">
+              Let&apos;s Make Your Pool{" "}
+              <span className="bg-gradient-to-r from-teal-200 to-sky-200 bg-clip-text text-transparent">
+                Perfect
+              </span>
+            </h1>
+            <p className="mt-6 text-lg text-teal-100/80 max-w-2xl mx-auto">
+              Get a free estimate or ask us anything. We&apos;re here to help
+              you enjoy crystal clear water.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Contact Form + Info */}
+      <section className="py-24 sm:py-32">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
+            {/* Form */}
+            <div className="lg:col-span-3">
+              <SectionReveal>
+                <motion.div variants={fadeUp} custom={0}>
+                  <Card className="border-0 shadow-lg">
+                    <CardHeader>
+                      <CardTitle className="text-2xl">
+                        Send Us a Message
+                      </CardTitle>
+                      <CardDescription>
+                        Fill out the form below and we&apos;ll get back to you
+                        within 24 hours.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <AnimatePresence mode="wait">
+                        {submitted ? (
+                          <motion.div
+                            key="success"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.5 }}
+                            className="text-center py-12"
+                          >
+                            <motion.div
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              transition={{
+                                delay: 0.2,
+                                type: "spring",
+                                stiffness: 200,
+                              }}
+                              className="w-20 h-20 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-teal-500/20"
+                            >
+                              <CheckCircle className="w-10 h-10 text-white" />
+                            </motion.div>
+                            <h3 className="text-2xl font-bold mb-2">
+                              Message Sent!
+                            </h3>
+                            <p className="text-muted-foreground">
+                              Thank you for reaching out. We&apos;ll get back to
+                              you within 24 hours.
+                            </p>
+                            <Button
+                              onClick={() => {
+                                setSubmitted(false);
+                                setFormData({
+                                  name: "",
+                                  email: "",
+                                  phone: "",
+                                  service: "",
+                                  contactMethod: "",
+                                  message: "",
+                                });
+                              }}
+                              variant="outline"
+                              className="mt-6 rounded-xl cursor-pointer"
+                            >
+                              Send Another Message
+                            </Button>
+                          </motion.div>
+                        ) : (
+                          <motion.form
+                            key="form"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onSubmit={handleSubmit}
+                            className="space-y-5"
+                          >
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="name">Full Name *</Label>
+                                <Input
+                                  id="name"
+                                  name="name"
+                                  placeholder="John Smith"
+                                  required
+                                  value={formData.name}
+                                  onChange={handleChange}
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="email">Email *</Label>
+                                <Input
+                                  id="email"
+                                  name="email"
+                                  type="email"
+                                  placeholder="john@example.com"
+                                  required
+                                  value={formData.email}
+                                  onChange={handleChange}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="phone">Phone</Label>
+                                <Input
+                                  id="phone"
+                                  name="phone"
+                                  type="tel"
+                                  placeholder="(714) 555-1234"
+                                  value={formData.phone}
+                                  onChange={handleChange}
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="service">Service Type</Label>
+                                <Select
+                                  value={formData.service}
+                                  onValueChange={(val) =>
+                                    setFormData((p) => ({ ...p, service: val }))
+                                  }
+                                >
+                                  <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Select a service" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="weekly">
+                                      Weekly Cleaning
+                                    </SelectItem>
+                                    <SelectItem value="one-time">
+                                      One-Time Cleaning
+                                    </SelectItem>
+                                    <SelectItem value="repair">
+                                      Equipment Repair
+                                    </SelectItem>
+                                    <SelectItem value="heater">
+                                      Heater Service
+                                    </SelectItem>
+                                    <SelectItem value="green">
+                                      Green Pool
+                                    </SelectItem>
+                                    <SelectItem value="other">Other</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="contactMethod">
+                                Preferred Contact Method
+                              </Label>
+                              <Select
+                                value={formData.contactMethod}
+                                onValueChange={(val) =>
+                                  setFormData((p) => ({
+                                    ...p,
+                                    contactMethod: val,
+                                  }))
+                                }
+                              >
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="How should we reach you?" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="phone">Phone Call</SelectItem>
+                                  <SelectItem value="text">Text Message</SelectItem>
+                                  <SelectItem value="email">Email</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="message">Message *</Label>
+                              <Textarea
+                                id="message"
+                                name="message"
+                                placeholder="Tell us about your pool and what services you need..."
+                                required
+                                rows={5}
+                                value={formData.message}
+                                onChange={handleChange}
+                              />
+                            </div>
+
+                            <Button
+                              type="submit"
+                              disabled={loading}
+                              size="lg"
+                              className="w-full bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white rounded-xl text-base font-semibold cursor-pointer"
+                            >
+                              {loading ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  Sending...
+                                </>
+                              ) : (
+                                <>
+                                  <Send className="w-4 h-4" />
+                                  Send Message
+                                </>
+                              )}
+                            </Button>
+                          </motion.form>
+                        )}
+                      </AnimatePresence>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </SectionReveal>
+            </div>
+
+            {/* Contact Info */}
+            <div className="lg:col-span-2">
+              <SectionReveal>
+                <motion.div variants={fadeUp} custom={1}>
+                  <div className="bg-gradient-to-br from-teal-600 to-teal-800 rounded-2xl p-6 sm:p-8 text-white shadow-xl sticky top-28">
+                    <h3 className="text-xl font-bold mb-6">
+                      Contact Information
+                    </h3>
+
+                    <div className="space-y-5">
+                      <a
+                        href="tel:7145618301"
+                        className="flex items-start gap-3 group"
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0 group-hover:bg-white/20 transition-colors">
+                          <Phone className="w-5 h-5 text-teal-200" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-teal-200/70 mb-0.5">
+                            Phone
+                          </p>
+                          <p className="font-semibold group-hover:text-teal-200 transition-colors">
+                            (714) 561-8301
+                          </p>
+                        </div>
+                      </a>
+
+                      <a
+                        href="mailto:blessedpoolservice@gmail.com"
+                        className="flex items-start gap-3 group"
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0 group-hover:bg-white/20 transition-colors">
+                          <Mail className="w-5 h-5 text-teal-200" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-teal-200/70 mb-0.5">
+                            Email
+                          </p>
+                          <p className="font-semibold text-sm group-hover:text-teal-200 transition-colors break-all">
+                            blessedpoolservice@gmail.com
+                          </p>
+                        </div>
+                      </a>
+
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                          <MapPin className="w-5 h-5 text-teal-200" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-teal-200/70 mb-0.5">
+                            Address
+                          </p>
+                          <p className="font-semibold">
+                            Glendale, CA 91221
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                          <Clock className="w-5 h-5 text-teal-200" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-teal-200/70 mb-0.5">
+                            Hours
+                          </p>
+                          <p className="font-semibold">Mon-Sat 7:00 AM - 6:00 PM</p>
+                          <p className="text-sm text-teal-200/60">
+                            Sun Closed
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-white/10 pt-5">
+                        <p className="text-sm text-teal-200/70 mb-3">
+                          Follow Us
+                        </p>
+                        <div className="flex gap-3">
+                          <a
+                            href="https://www.facebook.com/ablessedpoolservice/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+                            aria-label="Facebook"
+                          >
+                            <Facebook className="w-5 h-5" />
+                          </a>
+                          <a
+                            href="https://www.yelp.com/biz/blessed-pool-service-garden-grove"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+                            aria-label="Yelp"
+                          >
+                            <Star className="w-5 h-5" />
+                          </a>
+                        </div>
+                      </div>
+
+                      <div className="bg-white/10 rounded-xl p-4 mt-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <MessageCircle className="w-4 h-4 text-teal-200" />
+                          <p className="text-sm font-medium">
+                            Quick Response
+                          </p>
+                        </div>
+                        <p className="text-xs text-teal-200/70">
+                          We respond to all inquiries within 24 hours.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              </SectionReveal>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Contact FAQ */}
+      <section className="py-24 sm:py-32 bg-gradient-to-b from-white to-teal-50/30">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <SectionReveal>
+            <motion.div
+              variants={fadeUp}
+              custom={0}
+              className="text-center mb-12"
+            >
+              <Badge className="bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100 mb-4">
+                <MessageCircle className="w-3.5 h-3.5 mr-1.5" />
+                FAQ
+              </Badge>
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
+                Quick <span className="text-gradient-water">Answers</span>
+              </h2>
+            </motion.div>
+          </SectionReveal>
+
+          <SectionReveal>
+            <motion.div variants={fadeIn} custom={0}>
+              <Accordion type="single" collapsible className="space-y-2">
+                {contactFAQs.map((faq, i) => (
+                  <AccordionItem
+                    key={i}
+                    value={`contact-faq-${i}`}
+                    className="bg-white rounded-xl border shadow-sm px-6"
+                  >
+                    <AccordionTrigger className="text-left font-semibold text-sm hover:no-underline">
+                      {faq.q}
+                    </AccordionTrigger>
+                    <AccordionContent className="text-muted-foreground text-sm leading-relaxed">
+                      {faq.a}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </motion.div>
+          </SectionReveal>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* ================================================================== */
+/*  MAIN APP                                                            */
+/* ================================================================== */
+function navigate(page: PageKey) {
+  window.location.hash = page;
+}
+
+export default function App() {
+  const [currentPage, setCurrentPage] = useState<PageKey>("home");
+
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash.replace("#", "") as PageKey;
+      if (["home", "services", "about", "process", "areas", "contact"].includes(hash)) {
+        setCurrentPage(hash);
+      } else {
+        setCurrentPage("home");
+      }
+    };
+
+    handleHash();
+    window.addEventListener("hashchange", handleHash);
+    return () => window.removeEventListener("hashchange", handleHash);
+  }, []);
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Navigation currentPage={currentPage} onNavigate={navigate} />
+
+      <main className="flex-1">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentPage}
+            variants={pageVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+          >
+            {currentPage === "home" && (
+              <HomePage onNavigate={navigate} />
+            )}
+            {currentPage === "services" && (
+              <ServicesPage onNavigate={navigate} />
+            )}
+            {currentPage === "about" && <AboutPage />}
+            {currentPage === "process" && (
+              <ProcessPage onNavigate={navigate} />
+            )}
+            {currentPage === "areas" && (
+              <AreasPage onNavigate={navigate} />
+            )}
+            {currentPage === "contact" && <ContactPage />}
+          </motion.div>
+        </AnimatePresence>
+      </main>
+
+      <Footer onNavigate={navigate} />
     </div>
   );
 }
